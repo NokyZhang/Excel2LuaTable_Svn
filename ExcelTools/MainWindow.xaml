@@ -1,0 +1,91 @@
+﻿<Window x:Class="ExcelTools.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:avalonDock="http://schemas.xceed.com/wpf/xaml/avalondock"
+        xmlns:custom="clr-namespace:ExcelTools.Scripts.UI"
+        mc:Ignorable="d"
+        Title="配置表工具" Height="600" Width="1080" Loaded="Window_Loaded">
+    <Grid>
+        <DockPanel>
+            <Menu DockPanel.Dock="Top">
+                <MenuItem Header="File">
+                    <MenuItem Name="menuOpen" Header="打开" Click="ChangeSourcePath_Click"></MenuItem>
+                </MenuItem>
+                <MenuItem Header="View"></MenuItem>
+                <MenuItem Header="About"></MenuItem>
+            </Menu>
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
+                <Button Content="检查状态" Click ="CheckStateBtn_Click" x:Name ="checkStateBtn" Height="20" Width="100"/>
+                <Button Content="功能" Click ="MultiFuncBtn_Click" Name="multiFunctionBtn" Height="20" Width="100"/>
+                <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Trunk" Height="20" Width="100" Margin="470,0,0,0" IsEnabled="False"/>
+                <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Studio" Height="20" Width="100" IsEnabled="False"/>
+                <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_TF" Height="20" Width="100" IsEnabled="False"/>
+                <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Release" Height="20" Width="100" IsEnabled="False"/>
+            </StackPanel>
+            <avalonDock:DockingManager x:Name="dockingManager" DockPanel.Dock="Top">
+                <avalonDock:LayoutRoot>
+                    <avalonDock:LayoutPanel Orientation="Horizontal">
+                        <avalonDock:LayoutAnchorablePane DockWidth="200" DockMinWidth="60">
+                            <avalonDock:LayoutAnchorable Title="表格浏览" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
+                                <ListView Name="tableListView" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="表格" DisplayMemberBinding="{Binding Name}" Width="190"/>
+                                        </GridView>
+                                    </ListView.View>
+                                    <ListView.ItemContainerStyle>
+                                        <Style TargetType="{x:Type ListViewItem}">
+                                            <Style.Triggers>
+                                                <!--状态的判断-->
+                                                <DataTrigger Binding="{Binding Path=IsSame}" Value="False">
+                                                    <Setter Property="Foreground" Value="Red"/>
+                                                </DataTrigger>
+                                                <!--编辑状态的判断-->
+                                                <DataTrigger Binding="{Binding Path=IsEditing}" Value="True">
+                                                    <Setter Property="Background" Value="LightGreen"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ListView.ItemContainerStyle>
+                                </ListView>
+                            </avalonDock:LayoutAnchorable>
+                        </avalonDock:LayoutAnchorablePane>
+
+                        <avalonDock:LayoutAnchorablePane DockWidth="185" DockMinWidth="60">
+                            <avalonDock:LayoutAnchorable Title="ID项" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False" >
+                                <ListView x:Name="idListView" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="ID" DisplayMemberBinding="{Binding ID}" Width="53" />
+                                            <GridViewColumn Header="Tr" DisplayMemberBinding="{Binding Trunk_State}" Width="25" />
+                                            <GridViewColumn Header="St" DisplayMemberBinding="{Binding Studio_State}" Width="25" />
+                                            <GridViewColumn Header="TF" DisplayMemberBinding="{Binding TF_State}" Width="25" />
+                                            <GridViewColumn Header="Re" DisplayMemberBinding="{Binding Release_State}" Width="25" />
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
+                            </avalonDock:LayoutAnchorable>
+                        </avalonDock:LayoutAnchorablePane>
+                        <avalonDock:LayoutDocumentPane DockWidth="675" DockMinWidth="60">
+                            <avalonDock:LayoutAnchorable CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
+                                <DataGrid x:Name="propertyDataGrid" ItemsSource="{Binding}" AutoGenerateColumns="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="字段名" Width="100" Binding="{Binding PropertyName}" CanUserSort="False"/>
+                                        <DataGridTextColumn Header="英文名" Width="80" Binding="{Binding EnName}" CanUserSort="False"/>
+                                        <DataGridTextColumn Header="本地内容" Width="165" Binding="{Binding Context}" CanUserSort="False"/>
+                                        <DataGridTextColumn Header="Trunk" Width="100" Binding="{Binding Trunk}" CanUserSort="False"/>
+                                        <DataGridTextColumn Header="Studio" Width="100" Binding="{Binding Studio}" CanUserSort="False"/>
+                                        <DataGridTextColumn Header="TF" Width="100" Binding="{Binding TF}" CanUserSort="False"/>
+                                        <DataGridTextColumn Header="Release" Width="100" Binding="{Binding Release}" CanUserSort="False"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </avalonDock:LayoutAnchorable>
+                        </avalonDock:LayoutDocumentPane>
+                    </avalonDock:LayoutPanel>
+                </avalonDock:LayoutRoot>
+            </avalonDock:DockingManager>
+        </DockPanel>
+    </Grid>
+</Window>
