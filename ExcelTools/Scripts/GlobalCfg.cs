@@ -102,10 +102,20 @@ namespace ExcelTools.Scripts
             return _ExcelDic[path];
         }
 
-        public void Clear()
+        public void ClearAll()
         {
             _ExcelDic.Clear();
             _lTableDataDic.Clear();
+        }
+
+        public void ClearCurrent()
+        {
+            if (_lTableDataDic.ContainsKey(currentExcelpath))
+            {
+                _lTableDataDic[currentExcelpath].tables.Clear();
+                _lTableDataDic[currentExcelpath].tableDiffs.Clear();
+                _lTableDataDic[currentExcelpath].idList = null;
+            }
         }
 
         private LuaTableData InitLuaTableData(string excelpath)

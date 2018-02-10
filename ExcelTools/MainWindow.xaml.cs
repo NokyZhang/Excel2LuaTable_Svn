@@ -24,7 +24,7 @@ namespace ExcelTools
         private const string STATE_UPDATE = "Update";
         private const string STATE_REVERT = "Revert";
         private const string STATE_EDIT = "编辑";
-        private const string STATE_FINISH_EDIT = "提交并结束编辑";
+        private const string STATE_FINISH_EDIT = "提交";
         //生成按钮状态
         private const string STATE_GEN = "生成至";
         private const string STATE_CANCEL = "取消生成";
@@ -32,7 +32,7 @@ namespace ExcelTools
         private string _localRev;
         private string _serverRev;
 
-        private ExcelFileListItem _listItemChoosed = null;
+        private ExcelFileListItem _fileItemChoosed = null;
         private IDListItem _IDItemSelected = null;
 
         public MainWindow()
@@ -147,10 +147,13 @@ namespace ExcelTools
 
         private void FileListView_SelectionChange(object sender, SelectionChangedEventArgs e)
         {
-            ListView listView = sender as ListView;
-            ExcelFileListItem item = listView.SelectedItem as ExcelFileListItem;
-            _listItemChoosed = item;
-            if (item == null)
+            if (sender != null)
+            {
+                ListView listView = sender as ListView;
+                ExcelFileListItem item = listView.SelectedItem as ExcelFileListItem;
+                _fileItemChoosed = item;
+            }
+            if (_fileItemChoosed == null)
             {
                 return;
             }
@@ -159,7 +162,7 @@ namespace ExcelTools
             idListView.ItemsSource = null;
             propertyDataGrid.ItemsSource = null;
             ResetGenBtnEnable();
-            idListView.ItemsSource = GlobalCfg.Instance.GetIDList(item.FilePath);
+            idListView.ItemsSource = GlobalCfg.Instance.GetIDList(_fileItemChoosed.FilePath);
             ResetGenBtnState();
         }
 
@@ -169,7 +172,7 @@ namespace ExcelTools
             if(item == null)
                 return;
 
-            Excel excel = GlobalCfg.Instance.GetParsedExcel(_listItemChoosed.FilePath);
+            Excel excel = GlobalCfg.Instance.GetParsedExcel(_fileItemChoosed.FilePath);
             List<PropertyInfo> propertyList = excel.Properties;
             ObservableCollection<PropertyListItem> fieldList = new ObservableCollection<PropertyListItem>();
 
@@ -313,32 +316,36 @@ namespace ExcelTools
             {
                 case STATE_UPDATE:
                     SVNHelper.Update(_Folders[0], _Folders[1]);
-                    GlobalCfg.Instance.Clear();
+                    GlobalCfg.Instance.ClearAll();
+                    FileListView_SelectionChange(null, null);
                     GetRevision();
                     break;
                 case STATE_REVERT:
-                    RevertAll(_listItemChoosed.Paths);
+                    RevertAll(_fileItemChoosed.Paths);
                     CheckStateBtn_Click(null, null);
+                    GlobalCfg.Instance.ClearCurrent();
+                    FileListView_SelectionChange(null, null);
                     break;
                 case STATE_EDIT:
                     //请求进入编辑状态
-                    if (SVNHelper.RequestEdit(_listItemChoosed.FilePath))
+                    if (SVNHelper.RequestEdit(_fileItemChoosed.FilePath))
                     {
-                        _listItemChoosed.IsEditing = true;
+                        _fileItemChoosed.IsEditing = true;
                     }
                     else
                     {
-                        _listItemChoosed.IsEditing = false;
+                        _fileItemChoosed.IsEditing = false;
                     }
                     JudgeMultiFuncBtnState();
                     ResetGenBtnEnable();
                     break;
                 case STATE_FINISH_EDIT:
-                    for (int i = 0; i < GlobalCfg.BranchCount; i++) {
+                    for (int i = 0; i < GlobalCfg.BranchCount; i++)
+                    {
                         GlobalCfg.Instance.ExcuteModified(i);
                     }
-                    ReleaseExcelRelative(_listItemChoosed.FilePath);
-                    _listItemChoosed.IsEditing = false;
+                    ReleaseExcelRelative(_fileItemChoosed.FilePath);
+                    _fileItemChoosed.IsEditing = false;
                     JudgeMultiFuncBtnState();
                     break;
                 default:
@@ -346,11 +353,19 @@ namespace ExcelTools
             }
         }
 
+        private void CancelEdit_Click(object sender, RoutedEventArgs e)
+        {
+            GlobalCfg.Instance.ClearCurrent();
+            FileListView_SelectionChange(null, null);
+            _fileItemChoosed.IsEditing = false;
+            JudgeMultiFuncBtnState();
+        }
+
         private void ResetGenBtnEnable()
         {
             for(int i = 0; i < GenBtns.Count; i++)
             {
-                GenBtns[i].IsEnabled = _listItemChoosed.IsEditing;
+                GenBtns[i].IsEnabled = _fileItemChoosed.IsEditing;
             }
         }
 
@@ -386,22 +401,36 @@ namespace ExcelTools
                 multiFunctionBtn.Content = STATE_UPDATE;
             }
             //和SVN版本库中有差异(MODIFIED和ADDED)
-            else if (_listItemChoosed != null && !_listItemChoosed.IsSame)
+            else if (_fileItemChoosed != null && !_fileItemChoosed.IsSame)
             {
                 multiFunctionBtn.Content = STATE_REVERT;
             }
             //可请求进入编辑状态
-            else if (_listItemChoosed != null && _listItemChoosed.IsSame && !_listItemChoosed.IsEditing)
+            else if (_fileItemChoosed != null && _fileItemChoosed.IsSame && !_fileItemChoosed.IsEditing)
             {
                 multiFunctionBtn.Content = STATE_EDIT;
             }
-            else if (_listItemChoosed != null && _listItemChoosed.IsEditing)
+            else if (_fileItemChoosed != null && _fileItemChoosed.IsEditing)
             {
                 multiFunctionBtn.Content = STATE_FINISH_EDIT;
+                
             }
             else
             {
                 multiFunctionBtn.Visibility = Visibility.Hidden;
+            }
+            RefreshCancelBtn();
+        }
+
+        private void RefreshCancelBtn()
+        {
+            if(_fileItemChoosed != null && _fileItemChoosed.IsEditing)
+            {
+                cancelBtn.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                cancelBtn.Visibility = Visibility.Hidden;
             }
         }
 

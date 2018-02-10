@@ -19,6 +19,7 @@
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
                 <Button Content="检查状态" Click ="CheckStateBtn_Click" x:Name ="checkStateBtn" Height="20" Width="100"/>
                 <Button Content="功能" Click ="MultiFuncBtn_Click" Name="multiFunctionBtn" Height="20" Width="100"/>
+                <Button Content="取消" Click ="CancelEdit_Click" Name="cancelBtn" Height="20" Width="100" Visibility="Hidden"/>
                 <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Trunk" Height="20" Width="100" Margin="470,0,0,0" IsEnabled="False"/>
                 <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Studio" Height="20" Width="100" IsEnabled="False"/>
                 <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_TF" Height="20" Width="100" IsEnabled="False"/>
@@ -27,7 +28,7 @@
             <avalonDock:DockingManager x:Name="dockingManager" DockPanel.Dock="Top">
                 <avalonDock:LayoutRoot>
                     <avalonDock:LayoutPanel Orientation="Horizontal">
-                        <avalonDock:LayoutAnchorablePane DockWidth="200" DockMinWidth="60">
+                        <avalonDock:LayoutAnchorablePane DockWidth="200" DockMinWidth="60" >
                             <avalonDock:LayoutAnchorable Title="表格浏览" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
                                 <ListView Name="tableListView" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
                                     <ListView.View>
@@ -69,7 +70,7 @@
                             </avalonDock:LayoutAnchorable>
                         </avalonDock:LayoutAnchorablePane>
                         <avalonDock:LayoutDocumentPane DockWidth="675" DockMinWidth="60">
-                            <avalonDock:LayoutAnchorable CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
+                            <avalonDock:LayoutAnchorable Title="各分支内容" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
                                 <DataGrid x:Name="propertyDataGrid" ItemsSource="{Binding}" AutoGenerateColumns="False" IsReadOnly="True">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="字段名" Width="100" Binding="{Binding PropertyName}" CanUserSort="False"/>
