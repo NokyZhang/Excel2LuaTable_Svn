@@ -1,6 +1,8 @@
 ﻿
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using static Lua.lparser;
 
 namespace ExcelTools.Scripts.UI
 {
@@ -9,6 +11,43 @@ namespace ExcelTools.Scripts.UI
         public event PropertyChangedEventHandler PropertyChanged;
 
         public string ID { get; set; }
+
+        public string IdDisplay { get; set; }
+
+        // 生成用于显示的IdDisplay
+        // 各个表格的字段命名不同，此函数中设置了优先级,
+        // NameZh > NameEn > Name (大小写不敏感)
+        public static string GenIdDisplay(config cfg)
+        {
+            string str;
+            string dis;
+            #region 临时存储一个大小写不敏感的字典
+            Dictionary<string, property> tmpPropertiesDic = new Dictionary<string, property>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, property> kv in cfg.propertiesDic)
+            {
+                if(!tmpPropertiesDic.ContainsKey(kv.Key))
+                    tmpPropertiesDic.Add(kv.Key, kv.Value);
+            }
+            #endregion
+            if (tmpPropertiesDic.ContainsKey("NameZh"))
+            {
+                dis = tmpPropertiesDic["NameZh"].value;
+            }
+            else if (tmpPropertiesDic.ContainsKey("NameEn"))
+            {
+                dis = tmpPropertiesDic["NameEn"].value;
+            }
+            else if (tmpPropertiesDic.ContainsKey("Name"))
+            {
+                dis = tmpPropertiesDic["Name"].value;
+            }
+            else
+            {
+                dis = "";
+            }
+            str = dis == ""? cfg.key : cfg.key + "（" + dis + "）";
+            return str;
+        }
 
         public int Row { get; set; }
 

@@ -206,6 +206,7 @@ namespace ExcelTools.Scripts
                             tmpDic.Add(id, new IDListItem
                             {
                                 ID = id,
+                                IdDisplay = id,
                                 Row = -1,
                                 States = new List<string>()
                             });
@@ -238,6 +239,7 @@ namespace ExcelTools.Scripts
                     currentLuaTableData.idList.Add(new IDListItem
                     {
                         ID = currentLuaTableData.tables[0].configs[i].key,
+                        IdDisplay = IDListItem.GenIdDisplay(currentLuaTableData.tables[0].configs[i]),
                         Row = i,
                         States = GetRowAllStatus(currentLuaTableData.tables[0].configs[i].key),
                         IsApplys = new List<bool>() { false, false, false, false }

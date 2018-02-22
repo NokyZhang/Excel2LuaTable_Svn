@@ -59,7 +59,7 @@
                                 <ListView x:Name="idListView" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
                                     <ListView.View>
                                         <GridView>
-                                            <GridViewColumn Header="ID" DisplayMemberBinding="{Binding ID}" Width="53" />
+                                            <GridViewColumn Header="ID" DisplayMemberBinding="{Binding IdDisplay}" Width="53" />
                                             <GridViewColumn Header="Tr" DisplayMemberBinding="{Binding Trunk_State}" Width="25" />
                                             <GridViewColumn Header="St" DisplayMemberBinding="{Binding Studio_State}" Width="25" />
                                             <GridViewColumn Header="TF" DisplayMemberBinding="{Binding TF_State}" Width="25" />
