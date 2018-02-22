@@ -73,8 +73,7 @@
                             <avalonDock:LayoutAnchorable Title="各分支内容" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
                                 <DataGrid x:Name="propertyDataGrid" ItemsSource="{Binding}" AutoGenerateColumns="False" IsReadOnly="True">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="字段名" Width="100" Binding="{Binding PropertyName}" CanUserSort="False"/>
-                                        <DataGridTextColumn Header="英文名" Width="80" Binding="{Binding EnName}" CanUserSort="False"/>
+                                        <DataGridTextColumn Header="字段名" Width="120" Binding="{Binding PropertyName}" CanUserSort="False"/>
                                         <DataGridTextColumn Header="本地内容" Width="165" Binding="{Binding Context}" CanUserSort="False"/>
                                         <DataGridTextColumn Header="Trunk" Width="100" Binding="{Binding Trunk}" CanUserSort="False"/>
                                         <DataGridTextColumn Header="Studio" Width="100" Binding="{Binding Studio}" CanUserSort="False"/>

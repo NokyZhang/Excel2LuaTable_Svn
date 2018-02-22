@@ -170,12 +170,11 @@ namespace ExcelTools
             IDListItem item = (sender as ListView).SelectedItem as IDListItem;
             if(item == null)
                 return;
+            _IDItemSelected = item;
+            ObservableCollection<PropertyListItem> fieldList = new ObservableCollection<PropertyListItem>();
 
             Excel excel = GlobalCfg.Instance.GetParsedExcel(_fileItemChoosed.FilePath);
             List<PropertyInfo> propertyList = excel.Properties;
-            ObservableCollection<PropertyListItem> fieldList = new ObservableCollection<PropertyListItem>();
-
-            _IDItemSelected = item;
             List<lparser.config> configs = GlobalCfg.Instance.GetTableRow(item.ID);
             string ename = string.Empty;
             for (int i = 0; i < propertyList.Count; i++)
@@ -183,8 +182,8 @@ namespace ExcelTools
                 ename = propertyList[i].ename;
                 fieldList.Add(new PropertyListItem()
                 {
-                    PropertyName = propertyList[i].cname,
-                    EnName = propertyList[i].ename,
+                    PropertyName = propertyList[i].cname + "（" + ename + "）",
+                    EnName = ename,
                     Context = configs[0] != null && configs[0].propertiesDic.ContainsKey(ename) ? configs[0].propertiesDic[ename].value : null,
                     Trunk = configs[1] != null && configs[1].propertiesDic.ContainsKey(ename) ? configs[1].propertiesDic[ename].value : null,
                     Studio = configs[2] != null && configs[2].propertiesDic.ContainsKey(ename) ? configs[2].propertiesDic[ename].value : null,
@@ -193,7 +192,6 @@ namespace ExcelTools
                 });
             }
             propertyDataGrid.ItemsSource = fieldList;
-            ResetGenBtnEnable(item.ID);
             ResetGenBtnState();
 
             //刷新单元格颜色
@@ -204,17 +202,17 @@ namespace ExcelTools
                 }
                 for (int a = 0; a < fieldList.Count; a++) {
                     if (trd.modifiedcells != null && trd.modifiedcells.ContainsKey(fieldList[a].EnName)){
-                        DataGridCell dataGridCell = GetCell(propertyDataGrid, a, j + 3);
+                        DataGridCell dataGridCell = GetCell(propertyDataGrid, a, j + 2);
                         dataGridCell.Background = Brushes.LightBlue;
                     }
                     if (trd.modifiedcells != null && trd.addedcells.ContainsKey(fieldList[a].EnName))
                     {
-                        DataGridCell dataGridCell = GetCell(propertyDataGrid, a, j + 3);
+                        DataGridCell dataGridCell = GetCell(propertyDataGrid, a, j + 2);
                         dataGridCell.Background = Brushes.LightPink;
                     }
                     if (trd.modifiedcells != null && trd.deletedcells.ContainsKey(fieldList[a].EnName))
                     {
-                        DataGridCell dataGridCell = GetCell(propertyDataGrid, a, j + 3);
+                        DataGridCell dataGridCell = GetCell(propertyDataGrid, a, j + 2);
                         dataGridCell.Background = Brushes.LightBlue;
                     }
                 }
@@ -370,22 +368,10 @@ namespace ExcelTools
             }
         }
 
-        private void ResetGenBtnEnable(string rowId)
-        {
-            List<string> rowStatus = GlobalCfg.Instance.GetRowAllStatus(rowId);
-            for (int i = 0; i < GenBtns.Count; i++)
-            {
-                GenBtns[i].IsEnabled = _fileItemChoosed.IsEditing;
-                if(rowStatus[i] == "")
-                {
-                    GenBtns[i].IsEnabled = false;
-                }                
-            }
-        }
-
         private void ResetGenBtnState()
         {
-            for(int i = 0; i < GenBtns.Count; i++)
+            List<string> rowStatus = _IDItemSelected == null? null:GlobalCfg.Instance.GetRowAllStatus(_IDItemSelected.ID);
+            for (int i = 0; i < GenBtns.Count; i++)
             {
                 if (_IDItemSelected != null && _IDItemSelected.IsApplys[i])
                 {
@@ -394,6 +380,12 @@ namespace ExcelTools
                 else
                 {
                     GenBtns[i].Content = STATE_GEN;
+                }
+
+                GenBtns[i].IsEnabled = _fileItemChoosed.IsEditing;
+                if (rowStatus == null || (rowStatus[i] == "" && (GenBtns[i].Content.ToString() == STATE_GEN)))
+                {
+                    GenBtns[i].IsEnabled = false;
                 }
             }
         }
