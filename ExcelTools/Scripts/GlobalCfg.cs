@@ -162,7 +162,7 @@ namespace ExcelTools.Scripts
         LuaTableData currentLuaTableData;
         string currentExcelpath;
 
-        private List<string> GetRowAllStatus(string rowid)
+        public List<string> GetRowAllStatus(string rowid)
         {
             List<string> status = new List<string>();
             for (int i = 0; i < BranchURLs.Count; i++)

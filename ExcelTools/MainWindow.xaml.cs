@@ -161,7 +161,6 @@ namespace ExcelTools
             JudgeMultiFuncBtnState();
             idListView.ItemsSource = null;
             propertyDataGrid.ItemsSource = null;
-            ResetGenBtnEnable();
             idListView.ItemsSource = GlobalCfg.Instance.GetIDList(_fileItemChoosed.FilePath);
             ResetGenBtnState();
         }
@@ -194,6 +193,7 @@ namespace ExcelTools
                 });
             }
             propertyDataGrid.ItemsSource = fieldList;
+            ResetGenBtnEnable(item.ID);
             ResetGenBtnState();
 
             //刷新单元格颜色
@@ -337,16 +337,20 @@ namespace ExcelTools
                         _fileItemChoosed.IsEditing = false;
                     }
                     JudgeMultiFuncBtnState();
-                    ResetGenBtnEnable();
                     break;
                 case STATE_FINISH_EDIT:
-                    for (int i = 0; i < GlobalCfg.BranchCount; i++)
+                    System.Windows.Forms.MessageBoxButtons buttons = System.Windows.Forms.MessageBoxButtons.OKCancel;
+                    System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show("是否放弃提交修改？", "确认", buttons);
+                    if (dr == System.Windows.Forms.DialogResult.OK)
                     {
-                        GlobalCfg.Instance.ExcuteModified(i);
+                        for (int i = 0; i < GlobalCfg.BranchCount; i++)
+                        {
+                            GlobalCfg.Instance.ExcuteModified(i);
+                        }
+                        ReleaseExcelRelative(_fileItemChoosed.FilePath);
+                        _fileItemChoosed.IsEditing = false;
+                        JudgeMultiFuncBtnState();
                     }
-                    ReleaseExcelRelative(_fileItemChoosed.FilePath);
-                    _fileItemChoosed.IsEditing = false;
-                    JudgeMultiFuncBtnState();
                     break;
                 default:
                     break;
@@ -355,17 +359,27 @@ namespace ExcelTools
 
         private void CancelEdit_Click(object sender, RoutedEventArgs e)
         {
-            GlobalCfg.Instance.ClearCurrent();
-            FileListView_SelectionChange(null, null);
-            _fileItemChoosed.IsEditing = false;
-            JudgeMultiFuncBtnState();
+            System.Windows.Forms.MessageBoxButtons buttons = System.Windows.Forms.MessageBoxButtons.OKCancel;
+            System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show("是否放弃所有修改？", "确认", buttons);
+            if (dr == System.Windows.Forms.DialogResult.OK)
+            {
+                GlobalCfg.Instance.ClearCurrent();
+                FileListView_SelectionChange(null, null);
+                _fileItemChoosed.IsEditing = false;
+                JudgeMultiFuncBtnState();
+            }
         }
 
-        private void ResetGenBtnEnable()
+        private void ResetGenBtnEnable(string rowId)
         {
-            for(int i = 0; i < GenBtns.Count; i++)
+            List<string> rowStatus = GlobalCfg.Instance.GetRowAllStatus(rowId);
+            for (int i = 0; i < GenBtns.Count; i++)
             {
                 GenBtns[i].IsEnabled = _fileItemChoosed.IsEditing;
+                if(rowStatus[i] == "")
+                {
+                    GenBtns[i].IsEnabled = false;
+                }                
             }
         }
 
@@ -419,6 +433,7 @@ namespace ExcelTools
             {
                 multiFunctionBtn.Visibility = Visibility.Hidden;
             }
+
             RefreshCancelBtn();
         }
 
