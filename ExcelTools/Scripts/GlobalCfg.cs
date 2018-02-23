@@ -201,6 +201,13 @@ namespace ExcelTools.Scripts
                 {
                     foreach (var id in currentLuaTableData.tableDiffs[i].deletedrows.Keys)
                     {
+                        List<string> states = new List<string>();
+                        List<bool> isApplys = new List<bool>();
+                        for (int k = 0; k < BranchCount; k++)
+                        {
+                            states.Add(DifferController.STATUS_NONE);
+                            isApplys.Add(false);
+                        }
                         if (!tmpDic.ContainsKey(id))
                         {
                             tmpDic.Add(id, new IDListItem
@@ -208,12 +215,11 @@ namespace ExcelTools.Scripts
                                 ID = id,
                                 IdDisplay = id,
                                 Row = -1,
-                                States = new List<string>()
+                                States = states,
+                                IsApplys = isApplys
                             });
-                            for (int k = 0; k < BranchCount; k++)//初始化状态为STATUS_NONE
-                                tmpDic[id].States.Add(DifferController.STATUS_NONE);
                         }
-                        tmpDic[id].States[i] = DifferController.STATUS_DELETED;
+                        tmpDic[id].SetStates(DifferController.STATUS_DELETED, i);
                     }
                 }
             }
@@ -236,13 +242,16 @@ namespace ExcelTools.Scripts
                 currentLuaTableData.idList = new ObservableCollection<IDListItem>();
                 for (int i = 0; i < currentLuaTableData.tables[0].configs.Count; i++)
                 {
+                    List<bool> isApplys = new List<bool>();
+                    for (int k = 0; k < BranchCount; k++)//初始化状态为false
+                        isApplys.Add(false);
                     currentLuaTableData.idList.Add(new IDListItem
                     {
                         ID = currentLuaTableData.tables[0].configs[i].key,
                         IdDisplay = IDListItem.GenIdDisplay(currentLuaTableData.tables[0].configs[i]),
                         Row = i,
                         States = GetRowAllStatus(currentLuaTableData.tables[0].configs[i].key),
-                        IsApplys = new List<bool>() { false, false, false, false }
+                        IsApplys = isApplys
                     });
                 }
                 Dictionary<string, IDListItem> tmpDic = GetExcelDeletedRow();

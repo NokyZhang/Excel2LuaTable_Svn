@@ -23,6 +23,7 @@ namespace Lua
 
             //记录原来配置 用于回退
             private config oldCfg = null;
+            private int oldIndex = -1;
 
             public table(string _md5, string _name)
             {
@@ -103,6 +104,7 @@ namespace Lua
                 if (configsDic.ContainsKey(key))
                 {
                     oldCfg = configsDic[key];
+                    oldIndex = configs.IndexOf(configsDic[key]);
                     configs.Remove(configsDic[key]);
                     configsDic.Remove(key);
                 }
@@ -135,11 +137,16 @@ namespace Lua
                 //回退修改和删除
                 if(oldCfg != null)
                 {
-                    int index = configs.IndexOf(configsDic[key]);
-                    if(index < 0)
-                        configs.Add(oldCfg);
+                    int index;
+                    if (!configsDic.ContainsKey(key))
+                    {
+                        index = oldIndex;
+                    }
                     else
-                        configs[index] = oldCfg;
+                    {
+                        index = configs.IndexOf(configsDic[key]);
+                    }
+                    configs[index] = oldCfg;
                     configsDic[key] = oldCfg;
                 }
                 else
@@ -148,6 +155,7 @@ namespace Lua
                     configsDic.Remove(key);
                 }
                 oldCfg = null;
+                oldIndex = -1;
             }
             #endregion
         }

@@ -394,8 +394,10 @@ namespace ExcelTools.Scripts.Utils
         public Dictionary<string, config> deletedrows = new Dictionary<string, config>();
         public Dictionary<string, tablerowdiff> modifiedrows = new Dictionary<string, tablerowdiff>();
 
-        //仅仅用于回退，fieldListView颜色的显示
+        //仅仅用于回退
         private Dictionary<string, tablerowdiff> modifiedrowsAppled = new Dictionary<string, tablerowdiff>();
+        private Dictionary<string, config> addedrowsAppled = new Dictionary<string, config>();
+        private Dictionary<string, config> deletedrowsAppled = new Dictionary<string, config>();
 
         public void Apply(string status, string key, table bt, table lt)
         {
@@ -403,11 +405,13 @@ namespace ExcelTools.Scripts.Utils
             switch (status)
             {
                 case DifferController.STATUS_ADDED:
+                    addedrowsAppled.Add(key, addedrows[key]);
                     addedrows.Remove(key);
                     cfg = lt.configsDic[key];
                     bt.Apply(status, cfg);
                     break;
                 case DifferController.STATUS_DELETED:
+                    deletedrowsAppled.Add(key, deletedrows[key]);
                     deletedrows.Remove(key);
                     bt.Apply(status, null, key);
                     break;
@@ -426,6 +430,16 @@ namespace ExcelTools.Scripts.Utils
             {
                 modifiedrows.Add(key, modifiedrowsAppled[key]);
                 modifiedrowsAppled.Remove(key);
+            }
+            else if(deletedrowsAppled.ContainsKey(key))
+            {
+                deletedrows.Add(key, deletedrowsAppled[key]);
+                deletedrowsAppled.Remove(key);
+            }
+            else if(addedrowsAppled.ContainsKey(key))
+            {
+                addedrows.Add(key, addedrowsAppled[key]);
+                addedrowsAppled.Remove(key);
             }
                 //table结构的回退
                 bt.Cancel(key);
