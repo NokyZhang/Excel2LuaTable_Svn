@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:avalonDock="http://schemas.xceed.com/wpf/xaml/avalondock"
-        xmlns:custom="clr-namespace:ExcelTools.Scripts.UI"
+        xmlns:user="clr-namespace:ExcelTools.Scripts.UI"
         mc:Ignorable="d"
         Title="配置表工具" Height="600" Width="1080" Loaded="Window_Loaded">
     <Grid>
@@ -30,43 +30,49 @@
                     <avalonDock:LayoutPanel Orientation="Horizontal">
                         <avalonDock:LayoutAnchorablePane DockWidth="200" DockMinWidth="60" >
                             <avalonDock:LayoutAnchorable Title="表格浏览" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
-                                <ListView Name="tableListView" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
-                                    <ListView.View>
-                                        <GridView>
-                                            <GridViewColumn Header="表格" DisplayMemberBinding="{Binding Name}" Width="190"/>
-                                        </GridView>
-                                    </ListView.View>
-                                    <ListView.ItemContainerStyle>
-                                        <Style TargetType="{x:Type ListViewItem}">
-                                            <Style.Triggers>
-                                                <!--状态的判断-->
-                                                <DataTrigger Binding="{Binding Path=IsSame}" Value="False">
-                                                    <Setter Property="Foreground" Value="Red"/>
-                                                </DataTrigger>
-                                                <!--编辑状态的判断-->
-                                                <DataTrigger Binding="{Binding Path=IsEditing}" Value="True">
-                                                    <Setter Property="Background" Value="LightGreen"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ListView.ItemContainerStyle>
-                                </ListView>
+                                <DockPanel>
+                                    <user:SearchBox x:Name="excelSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" OnSearch="SearchBox_OnSearch" />
+                                    <ListView Name="excelListView" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
+                                        <ListView.View>
+                                            <GridView>
+                                                <GridViewColumn Header="表格" DisplayMemberBinding="{Binding Name}" Width="190"/>
+                                            </GridView>
+                                        </ListView.View>
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="{x:Type ListViewItem}">
+                                                <Style.Triggers>
+                                                    <!--状态的判断-->
+                                                    <DataTrigger Binding="{Binding Path=IsSame}" Value="False">
+                                                        <Setter Property="Foreground" Value="Red"/>
+                                                    </DataTrigger>
+                                                    <!--编辑状态的判断-->
+                                                    <DataTrigger Binding="{Binding Path=IsEditing}" Value="True">
+                                                        <Setter Property="Background" Value="LightGreen"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                    </ListView>
+                                </DockPanel>
                             </avalonDock:LayoutAnchorable>
                         </avalonDock:LayoutAnchorablePane>
 
                         <avalonDock:LayoutAnchorablePane DockWidth="185" DockMinWidth="60">
                             <avalonDock:LayoutAnchorable Title="ID项" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False" >
-                                <ListView x:Name="idListView" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
-                                    <ListView.View>
-                                        <GridView>
-                                            <GridViewColumn Header="ID" DisplayMemberBinding="{Binding IdDisplay}" Width="53" />
-                                            <GridViewColumn Header="Tr" DisplayMemberBinding="{Binding Trunk_State}" Width="25" />
-                                            <GridViewColumn Header="St" DisplayMemberBinding="{Binding Studio_State}" Width="25" />
-                                            <GridViewColumn Header="TF" DisplayMemberBinding="{Binding TF_State}" Width="25" />
-                                            <GridViewColumn Header="Re" DisplayMemberBinding="{Binding Release_State}" Width="25" />
-                                        </GridView>
-                                    </ListView.View>
-                                </ListView>
+                                <DockPanel>
+                                    <user:SearchBox x:Name="idSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" OnSearch="SearchBox_OnSearch" />
+                                    <ListView x:Name="idListView" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
+                                        <ListView.View>
+                                            <GridView>
+                                                <GridViewColumn Header="ID" DisplayMemberBinding="{Binding IdDisplay}" Width="53" />
+                                                <GridViewColumn Header="Tr" DisplayMemberBinding="{Binding Trunk_State}" Width="25" />
+                                                <GridViewColumn Header="St" DisplayMemberBinding="{Binding Studio_State}" Width="25" />
+                                                <GridViewColumn Header="TF" DisplayMemberBinding="{Binding TF_State}" Width="25" />
+                                                <GridViewColumn Header="Re" DisplayMemberBinding="{Binding Release_State}" Width="25" />
+                                            </GridView>
+                                        </ListView.View>
+                                    </ListView>
+                                </DockPanel>
                             </avalonDock:LayoutAnchorable>
                         </avalonDock:LayoutAnchorablePane>
                         <avalonDock:LayoutDocumentPane DockWidth="675" DockMinWidth="60">

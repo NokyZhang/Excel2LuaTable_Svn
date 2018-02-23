@@ -9,9 +9,8 @@ using ExcelTools.Scripts.Utils;
 using ExcelTools.Scripts;
 using ExcelTools.Scripts.UI;
 using Lua;
-using static SVNHelper;
-using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.ComponentModel;
 
 namespace ExcelTools
 {
@@ -59,11 +58,11 @@ namespace ExcelTools
         {
             LoadConfig();
             #region 初始化各列表
-            tableListView.DataContext = view;
-            tableListView.SelectionChanged += FileListView_SelectionChange;
+            excelListView.DataContext = view;
+            excelListView.SelectionChanged += FileListView_SelectionChange;
             idListView.SelectionChanged += IDListView_SelectChange;
-            //tableListView.Items.SortDescriptions.Add(new SortDescription("IsEditing", ListSortDirection.Descending));
-            tableListView.Items.IsLiveSorting = true;
+            excelListView.Items.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+            excelListView.Items.IsLiveSorting = true;
             propertyDataGrid.SelectionUnit = DataGridSelectionUnit.Cell;
             #endregion
             GetRevision();
@@ -202,77 +201,26 @@ namespace ExcelTools
                 }
                 for (int a = 0; a < fieldList.Count; a++) {
                     if (trd.modifiedcells != null && trd.modifiedcells.ContainsKey(fieldList[a].EnName)){
-                        DataGridCell dataGridCell = GetCell(propertyDataGrid, a, j + 2);
+                        DataGridCell dataGridCell = WPFHelper.GetCell(propertyDataGrid, a, j + 2);
                         dataGridCell.Background = Brushes.LightBlue;
                     }
                     if (trd.modifiedcells != null && trd.addedcells.ContainsKey(fieldList[a].EnName))
                     {
-                        DataGridCell dataGridCell = GetCell(propertyDataGrid, a, j + 2);
+                        DataGridCell dataGridCell = WPFHelper.GetCell(propertyDataGrid, a, j + 2);
                         dataGridCell.Background = Brushes.LightPink;
                     }
                     if (trd.modifiedcells != null && trd.deletedcells.ContainsKey(fieldList[a].EnName))
                     {
-                        DataGridCell dataGridCell = GetCell(propertyDataGrid, a, j + 2);
+                        DataGridCell dataGridCell = WPFHelper.GetCell(propertyDataGrid, a, j + 2);
                         dataGridCell.Background = Brushes.LightBlue;
                     }
                 }
             }
         }
 
-        #region WPF DataGrid控件获取DataGridCell方法
-        private DataGridCell GetCell(DataGrid dataGrid, int rowIndex, int columnIndex)
-        {
-            DataGridRow rowContainer = GetRow(dataGrid, rowIndex);
-            if (rowContainer != null)
-            {
-                DataGridCellsPresenter presenter = GetVisualChild<DataGridCellsPresenter>(rowContainer);
-                DataGridCell cell = (DataGridCell)presenter.ItemContainerGenerator.ContainerFromIndex(columnIndex);
-                if (cell == null)
-                {
-                    dataGrid.ScrollIntoView(rowContainer, dataGrid.Columns[columnIndex]);
-                    cell = (DataGridCell)presenter.ItemContainerGenerator.ContainerFromIndex(columnIndex);
-                }
-                return cell;
-            }
-            return null;
-        }
-
-        private DataGridRow GetRow(DataGrid dataGrid, int rowIndex)
-        {
-            DataGridRow rowContainer = (DataGridRow)dataGrid.ItemContainerGenerator.ContainerFromIndex(rowIndex);
-            if (rowContainer == null)
-            {
-                dataGrid.UpdateLayout();
-                dataGrid.ScrollIntoView(dataGrid.Items[rowIndex]);
-                rowContainer = (DataGridRow)dataGrid.ItemContainerGenerator.ContainerFromIndex(rowIndex);
-            }
-            return rowContainer;
-        }
-
-        public T GetVisualChild<T>(Visual parent) where T : Visual
-        {
-            T child = default(T);
-            int numVisuals = VisualTreeHelper.GetChildrenCount(parent);
-            for (int i = 0; i < numVisuals; i++)
-            {
-                Visual v = (Visual)VisualTreeHelper.GetChild(parent, i);
-                child = v as T;
-                if (child == null)
-                {
-                    child = GetVisualChild<T>(v);
-                }
-                if (child != null)
-                {
-                    break;
-                }
-            }
-            return child;
-        }
-        #endregion
-
         private void CheckStateBtn_Click(object sender, RoutedEventArgs e)
         {
-            Dictionary<string, FileStatusStr> statusDic = SVNHelper.AllStatus();
+            Dictionary<string, SVNHelper.FileStatusStr> statusDic = SVNHelper.AllStatus();
             for(int i = 0; i < _ExcelFiles.Count; i++)
             {
                 if (statusDic.ContainsKey(_ExcelFiles[i].Name))
@@ -319,7 +267,7 @@ namespace ExcelTools
                     GetRevision();
                     break;
                 case STATE_REVERT:
-                    RevertAll(_fileItemChoosed.Paths);
+                    SVNHelper.RevertAll(_fileItemChoosed.Paths);
                     CheckStateBtn_Click(null, null);
                     GlobalCfg.Instance.ClearCurrent();
                     FileListView_SelectionChange(null, null);
@@ -345,7 +293,7 @@ namespace ExcelTools
                         {
                             GlobalCfg.Instance.ExcuteModified(i);
                         }
-                        ReleaseExcelRelative(_fileItemChoosed.FilePath);
+                        SVNHelper.ReleaseExcelRelative(_fileItemChoosed.FilePath);
                         _fileItemChoosed.IsEditing = false;
                         JudgeMultiFuncBtnState();
                     }
@@ -446,7 +394,7 @@ namespace ExcelTools
             //do my stuff before closing
             FileUtil.DeleteHiddenFile(new List<string> { GlobalCfg.SourcePath + "/.." }, _Ext);
             FileUtil.DeleteHiddenFile(new List<string> { GlobalCfg.SourcePath + "/.." }, ".txt");
-            ReleaseAll();
+            SVNHelper.ReleaseAll();
             base.OnClosing(e);
         }
 
@@ -474,5 +422,56 @@ namespace ExcelTools
             IDListView_SelectChange(idListView, null);
         }
 
+        private void SearchBox_OnSearch(object sender, SearchEventArgs e)
+        {
+            SearchBox searchBox = sender as SearchBox;
+            switch (searchBox.Name)
+            {
+                case "excelSearchBox":
+                    ScrollToMatchItem<ExcelFileListItem>(excelListView, e.SearchText);
+                    break;
+                case "idSearchBox":
+                    ScrollToMatchItem<IDListItem>(idListView, e.SearchText);
+                    break;
+                default:
+                    break;
+            }
+
+            void ScrollToMatchItem<T>(ListView listView, string input)
+            {
+                bool IsMatchFromStart = true;
+                if (input.StartsWith("*"))
+                {
+                    IsMatchFromStart = false;
+                    input = input.Substring(1);
+                }
+                for(int i = 0; i < listView.Items.Count; i++)
+                {
+                    T item = (T)listView.Items[i];
+                    string ss = null;
+                    if(item is ExcelFileListItem)
+                    {
+                        ExcelFileListItem excelItem = item as ExcelFileListItem;
+                        ss = excelItem.Name;
+                    }
+                    else if(item is IDListItem)
+                    {
+                        IDListItem idItem = item as IDListItem;
+                        ss = idItem.IdDisplay;
+                    }
+                    else
+                    {
+                        return;
+                    }
+                    if(StringHelper.StringMatch(ss, input, IsMatchFromStart, false))
+                    {
+                        listView.ScrollIntoView(item);
+                        listView.SelectedItem = item;
+                        return;
+                    }
+                }
+                return;
+            }
+        }
     }
 }
