@@ -283,6 +283,10 @@ namespace ExcelTools
                         _fileItemChoosed.IsEditing = false;
                     }
                     JudgeMultiFuncBtnState();
+                    if(_IDItemSelected != null)
+                    {
+                        ResetGenBtnState();
+                    }
                     break;
                 case STATE_FINISH_EDIT:
                     System.Windows.Forms.MessageBoxButtons buttons = System.Windows.Forms.MessageBoxButtons.OKCancel;
