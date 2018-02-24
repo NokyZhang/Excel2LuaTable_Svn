@@ -328,6 +328,7 @@ namespace ExcelTools
             {
                 GlobalCfg.Instance.ClearCurrent();
                 FileListView_SelectionChange(null, null);
+                SVNHelper.ReleaseExcelRelative(_excelItemChoosed.FilePath);
                 _excelItemChoosed.IsEditing = false;
                 JudgeMultiFuncBtnState();
             }
