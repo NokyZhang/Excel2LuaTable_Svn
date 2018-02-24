@@ -32,6 +32,9 @@
                             <avalonDock:LayoutAnchorable Title="表格浏览" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
                                 <DockPanel>
                                     <user:SearchBox x:Name="excelSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" OnSearch="SearchBox_OnSearch" />
+
+                                    <CheckBox x:Name="checkBox_editing" DockPanel.Dock="Top" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked">编辑中</CheckBox>
+                                    
                                     <ListView Name="excelListView" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
                                         <ListView.View>
                                             <GridView>
@@ -61,6 +64,12 @@
                             <avalonDock:LayoutAnchorable Title="ID项" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False" >
                                 <DockPanel>
                                     <user:SearchBox x:Name="idSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" OnSearch="SearchBox_OnSearch" />
+                                    
+                                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                                        <CheckBox x:Name="checkBox_changed" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" IsEnabled="False">有改动行</CheckBox>
+                                        <CheckBox x:Name="checkBox_applyed" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" IsEnabled="False">已生成</CheckBox>
+                                    </StackPanel>
+                                    
                                     <ListView x:Name="idListView" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
                                         <ListView.View>
                                             <GridView>

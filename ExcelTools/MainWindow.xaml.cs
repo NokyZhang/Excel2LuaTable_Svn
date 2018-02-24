@@ -31,7 +31,7 @@ namespace ExcelTools
         private string _localRev;
         private string _serverRev;
 
-        private ExcelFileListItem _fileItemChoosed = null;
+        private ExcelFileListItem _excelItemChoosed = null;
         private IDListItem _IDItemSelected = null;
 
         public MainWindow()
@@ -40,7 +40,6 @@ namespace ExcelTools
         }
 
         List<Button> GenBtns;
-        CollectionViewSource view = new CollectionViewSource();
         ObservableCollection<ExcelFileListItem> _ExcelFiles = new ObservableCollection<ExcelFileListItem>();
         Dictionary<string, DifferController> _DiffDic = new Dictionary<string, DifferController>();
         const string _ConfigPath = "config.txt";
@@ -58,10 +57,10 @@ namespace ExcelTools
         {
             LoadConfig();
             #region 初始化各列表
-            excelListView.DataContext = view;
             excelListView.SelectionChanged += FileListView_SelectionChange;
             idListView.SelectionChanged += IDListView_SelectChange;
             excelListView.Items.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+            excelListView.Items.SortDescriptions.Add(new SortDescription("IsEditing", ListSortDirection.Descending));
             excelListView.Items.IsLiveSorting = true;
             propertyDataGrid.SelectionUnit = DataGridSelectionUnit.Cell;
             #endregion
@@ -105,7 +104,7 @@ namespace ExcelTools
                     FilePath = files[i]
                 });
             }
-            view.Source = _ExcelFiles;
+            excelListView.ItemsSource = _ExcelFiles;
             //CheckStateBtn_Click(null, null);
         }
 
@@ -150,29 +149,43 @@ namespace ExcelTools
             {
                 ListView listView = sender as ListView;
                 ExcelFileListItem item = listView.SelectedItem as ExcelFileListItem;
-                _fileItemChoosed = item;
-            }
-            if (_fileItemChoosed == null)
-            {
-                return;
+                _excelItemChoosed = item;
             }
             _IDItemSelected = null;
-            JudgeMultiFuncBtnState();
-            idListView.ItemsSource = null;
-            propertyDataGrid.ItemsSource = null;
-            idListView.ItemsSource = GlobalCfg.Instance.GetIDList(_fileItemChoosed.FilePath);
-            ResetGenBtnState();
+            if (_excelItemChoosed == null)
+            {
+                idListView.ItemsSource = null;
+                propertyDataGrid.ItemsSource = null;
+                checkBox_changed.IsEnabled = false;
+                checkBox_changed.IsChecked = false;
+                checkBox_applyed.IsEnabled = false;
+                checkBox_applyed.IsChecked = false;
+            }
+            else
+            {
+                JudgeMultiFuncBtnState();
+                propertyDataGrid.ItemsSource = null;
+                idListView.ItemsSource = GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath);
+                checkBox_changed.IsEnabled = true;
+                checkBox_changed.IsChecked = false;
+                checkBox_applyed.IsEnabled = true;
+                checkBox_applyed.IsChecked = false;
+                ResetGenBtnState();
+            }
         }
 
         private void IDListView_SelectChange(object sender, SelectionChangedEventArgs e)
         {
             IDListItem item = (sender as ListView).SelectedItem as IDListItem;
-            if(item == null)
+            if (item == null)
+            {
+                propertyDataGrid.ItemsSource = null;
                 return;
+            }
             _IDItemSelected = item;
             ObservableCollection<PropertyListItem> fieldList = new ObservableCollection<PropertyListItem>();
 
-            Excel excel = GlobalCfg.Instance.GetParsedExcel(_fileItemChoosed.FilePath);
+            Excel excel = GlobalCfg.Instance.GetParsedExcel(_excelItemChoosed.FilePath);
             List<PropertyInfo> propertyList = excel.Properties;
             List<lparser.config> configs = GlobalCfg.Instance.GetTableRow(item.ID);
             string ename = string.Empty;
@@ -267,20 +280,20 @@ namespace ExcelTools
                     GetRevision();
                     break;
                 case STATE_REVERT:
-                    SVNHelper.RevertAll(_fileItemChoosed.Paths);
+                    SVNHelper.RevertAll(_excelItemChoosed.Paths);
                     CheckStateBtn_Click(null, null);
                     GlobalCfg.Instance.ClearCurrent();
                     FileListView_SelectionChange(null, null);
                     break;
                 case STATE_EDIT:
                     //请求进入编辑状态
-                    if (SVNHelper.RequestEdit(_fileItemChoosed.FilePath))
+                    if (SVNHelper.RequestEdit(_excelItemChoosed.FilePath))
                     {
-                        _fileItemChoosed.IsEditing = true;
+                        _excelItemChoosed.IsEditing = true;
                     }
                     else
                     {
-                        _fileItemChoosed.IsEditing = false;
+                        _excelItemChoosed.IsEditing = false;
                     }
                     JudgeMultiFuncBtnState();
                     if(_IDItemSelected != null)
@@ -297,8 +310,8 @@ namespace ExcelTools
                         {
                             GlobalCfg.Instance.ExcuteModified(i);
                         }
-                        SVNHelper.ReleaseExcelRelative(_fileItemChoosed.FilePath);
-                        _fileItemChoosed.IsEditing = false;
+                        SVNHelper.ReleaseExcelRelative(_excelItemChoosed.FilePath);
+                        _excelItemChoosed.IsEditing = false;
                         JudgeMultiFuncBtnState();
                     }
                     break;
@@ -315,7 +328,7 @@ namespace ExcelTools
             {
                 GlobalCfg.Instance.ClearCurrent();
                 FileListView_SelectionChange(null, null);
-                _fileItemChoosed.IsEditing = false;
+                _excelItemChoosed.IsEditing = false;
                 JudgeMultiFuncBtnState();
             }
         }
@@ -334,7 +347,7 @@ namespace ExcelTools
                     GenBtns[i].Content = STATE_GEN;
                 }
 
-                GenBtns[i].IsEnabled = _fileItemChoosed.IsEditing;
+                GenBtns[i].IsEnabled = _excelItemChoosed.IsEditing;
                 if (rowStatus == null || (rowStatus[i] == "" && (GenBtns[i].Content.ToString() == STATE_GEN)))
                 {
                     GenBtns[i].IsEnabled = false;
@@ -359,16 +372,16 @@ namespace ExcelTools
                 multiFunctionBtn.Content = STATE_UPDATE;
             }
             //和SVN版本库中有差异(MODIFIED和ADDED)
-            else if (_fileItemChoosed != null && !_fileItemChoosed.IsSame)
+            else if (_excelItemChoosed != null && !_excelItemChoosed.IsSame)
             {
                 multiFunctionBtn.Content = STATE_REVERT;
             }
             //可请求进入编辑状态
-            else if (_fileItemChoosed != null && _fileItemChoosed.IsSame && !_fileItemChoosed.IsEditing)
+            else if (_excelItemChoosed != null && _excelItemChoosed.IsSame && !_excelItemChoosed.IsEditing)
             {
                 multiFunctionBtn.Content = STATE_EDIT;
             }
-            else if (_fileItemChoosed != null && _fileItemChoosed.IsEditing)
+            else if (_excelItemChoosed != null && _excelItemChoosed.IsEditing)
             {
                 multiFunctionBtn.Content = STATE_FINISH_EDIT;
                 
@@ -383,7 +396,7 @@ namespace ExcelTools
 
         private void RefreshCancelBtn()
         {
-            if(_fileItemChoosed != null && _fileItemChoosed.IsEditing)
+            if(_excelItemChoosed != null && _excelItemChoosed.IsEditing)
             {
                 cancelBtn.Visibility = Visibility.Visible;
             }
@@ -475,6 +488,101 @@ namespace ExcelTools
                     }
                 }
                 return;
+            }
+        }
+
+        const string CHECKBOX_EDITING_NAME = "checkBox_editing";
+        const string CHECKBOX_CHANGED_NAME = "checkBox_changed";
+        const string CHECKBOX_APPLYED_NAME = "checkBox_applyed";
+        const string FILTER_BY_EDITING = "IsEditing";
+        const string FILTER_BY_STATES = "States";
+        const string FILTER_BY_APPLY = "IsApplys";
+
+        private void CheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            CheckBox checkBox = sender as CheckBox;
+            switch (checkBox.Name)
+            {
+                case CHECKBOX_EDITING_NAME:
+                    ObservableCollection<ExcelFileListItem> editFilteredCollection =
+                        GetFilteredCollection(_ExcelFiles, FILTER_BY_EDITING);
+                    excelListView.ItemsSource = editFilteredCollection;
+                    break;
+                case CHECKBOX_CHANGED_NAME:
+                    checkBox_applyed.IsChecked = false;
+                    ObservableCollection<IDListItem> changedFilteredCollection =
+                        GetFilteredCollection(GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath), FILTER_BY_STATES);
+                    idListView.ItemsSource = changedFilteredCollection;
+                    break;
+                case CHECKBOX_APPLYED_NAME:
+                    checkBox_changed.IsChecked = false;
+                    ObservableCollection<IDListItem> applyFilteredCollection =
+                        GetFilteredCollection(GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath), FILTER_BY_APPLY);
+                    idListView.ItemsSource = applyFilteredCollection;
+                    break;
+                default:
+                    break;
+            }
+            #region 获得过滤后数据
+            ObservableCollection<T> GetFilteredCollection<T>(ObservableCollection<T> sourceCollection, string filterBy)
+            {
+                ObservableCollection<T> filteredCollection = new ObservableCollection<T>();
+                foreach(T item in sourceCollection)
+                {
+                    if(item is ExcelFileListItem && filterBy == FILTER_BY_EDITING)
+                    {
+                        ExcelFileListItem excelItem = item as ExcelFileListItem;
+                        if (excelItem.IsEditing)
+                        {
+                            filteredCollection.Add(item);
+                        }
+                    }
+                    else if(item is IDListItem)
+                    {
+                        IDListItem idItem = item as IDListItem;
+                        if(filterBy == FILTER_BY_STATES)
+                        {
+                            for(int i = 0; i < idItem.States.Count; i++)
+                            {
+                                if(idItem.States[i] != "")
+                                {
+                                    filteredCollection.Add(item);
+                                    break;
+                                }
+                            }
+                        }
+                        else if(filterBy == FILTER_BY_APPLY)
+                        {
+                            for (int i = 0; i < idItem.IsApplys.Count; i++)
+                            {
+                                if (idItem.IsApplys[i])
+                                {
+                                    filteredCollection.Add(item);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                return filteredCollection;
+            }
+            #endregion
+        }
+
+        private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            CheckBox checkBox = sender as CheckBox;
+            switch (checkBox.Name)
+            {
+                case CHECKBOX_EDITING_NAME:
+                    excelListView.ItemsSource = _ExcelFiles;
+                    break;
+                case CHECKBOX_CHANGED_NAME:
+                case CHECKBOX_APPLYED_NAME:
+                    idListView.ItemsSource = GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath);
+                    break;
+                default:
+                    break;
             }
         }
     }
