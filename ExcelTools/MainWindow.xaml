@@ -6,24 +6,13 @@
         xmlns:avalonDock="http://schemas.xceed.com/wpf/xaml/avalondock"
         xmlns:user="clr-namespace:ExcelTools.Scripts.UI"
         mc:Ignorable="d"
-        Title="配置表工具" Height="600" Width="1080" Loaded="Window_Loaded">
+        Title="配置表工具" Height="600" Width="1120" Loaded="Window_Loaded">
     <Grid>
         <DockPanel>
-            <Menu DockPanel.Dock="Top">
-                <MenuItem Header="File">
-                    <MenuItem Name="menuOpen" Header="打开" Click="ChangeSourcePath_Click"></MenuItem>
-                </MenuItem>
-                <MenuItem Header="View"></MenuItem>
-                <MenuItem Header="About"></MenuItem>
-            </Menu>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
                 <Button Content="检查状态" Click ="CheckStateBtn_Click" x:Name ="checkStateBtn" Height="20" Width="100"/>
                 <Button Content="功能" Click ="MultiFuncBtn_Click" Name="multiFunctionBtn" Height="20" Width="100"/>
                 <Button Content="取消" Click ="CancelEdit_Click" Name="cancelBtn" Height="20" Width="100" Visibility="Hidden"/>
-                <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Trunk" Height="20" Width="100" Margin="470,0,0,0" IsEnabled="False"/>
-                <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Studio" Height="20" Width="100" IsEnabled="False"/>
-                <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_TF" Height="20" Width="100" IsEnabled="False"/>
-                <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Release" Height="20" Width="100" IsEnabled="False"/>
             </StackPanel>
             <avalonDock:DockingManager x:Name="dockingManager" DockPanel.Dock="Top">
                 <avalonDock:LayoutRoot>
@@ -31,11 +20,13 @@
                         <avalonDock:LayoutAnchorablePane DockWidth="200" DockMinWidth="60" >
                             <avalonDock:LayoutAnchorable Title="表格浏览" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
                                 <DockPanel>
-                                    <user:SearchBox x:Name="excelSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" OnSearch="SearchBox_OnSearch" />
+                                    <user:SearchBox x:Name="excelSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" 
+                                                    OnSearch="SearchBox_OnSearch" OnCancelSearch="SearchBox_OnCancelSearch"/>
 
                                     <CheckBox x:Name="checkBox_editing" DockPanel.Dock="Top" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked">编辑中</CheckBox>
                                     
-                                    <ListView Name="excelListView" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
+                                    <ListView Name="excelListView" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}" 
+                                              SelectionChanged="FileListView_SelectionChange">
                                         <ListView.View>
                                             <GridView>
                                                 <GridViewColumn Header="表格" DisplayMemberBinding="{Binding Name}" Width="190"/>
@@ -63,14 +54,15 @@
                         <avalonDock:LayoutAnchorablePane DockWidth="185" DockMinWidth="60">
                             <avalonDock:LayoutAnchorable Title="ID项" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False" >
                                 <DockPanel>
-                                    <user:SearchBox x:Name="idSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" OnSearch="SearchBox_OnSearch" />
+                                    <user:SearchBox x:Name="idSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" OnSearch="SearchBox_OnSearch" OnCancelSearch="SearchBox_OnCancelSearch"/>
                                     
                                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
                                         <CheckBox x:Name="checkBox_changed" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" IsEnabled="False">有改动行</CheckBox>
                                         <CheckBox x:Name="checkBox_applyed" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" IsEnabled="False">已生成</CheckBox>
                                     </StackPanel>
                                     
-                                    <ListView x:Name="idListView" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}">
+                                    <ListView x:Name="idListView" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}"
+                                              SelectionChanged="IDListView_SelectChange">
                                         <ListView.View>
                                             <GridView>
                                                 <GridViewColumn Header="ID" DisplayMemberBinding="{Binding IdDisplay}" Width="53" />
@@ -86,16 +78,27 @@
                         </avalonDock:LayoutAnchorablePane>
                         <avalonDock:LayoutDocumentPane DockWidth="675" DockMinWidth="60">
                             <avalonDock:LayoutAnchorable Title="各分支内容" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
-                                <DataGrid x:Name="propertyDataGrid" ItemsSource="{Binding}" AutoGenerateColumns="False" IsReadOnly="True">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="字段名" Width="120" Binding="{Binding PropertyName}" CanUserSort="False"/>
-                                        <DataGridTextColumn Header="本地内容" Width="165" Binding="{Binding Context}" CanUserSort="False"/>
-                                        <DataGridTextColumn Header="Trunk" Width="100" Binding="{Binding Trunk}" CanUserSort="False"/>
-                                        <DataGridTextColumn Header="Studio" Width="100" Binding="{Binding Studio}" CanUserSort="False"/>
-                                        <DataGridTextColumn Header="TF" Width="100" Binding="{Binding TF}" CanUserSort="False"/>
-                                        <DataGridTextColumn Header="Release" Width="100" Binding="{Binding Release}" CanUserSort="False"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
+                                <DockPanel>
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
+                                        <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Trunk" Height="20" Width="100" Margin="300,0,0,0" IsEnabled="False"/>
+                                        <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Studio" Height="20" Width="100" IsEnabled="False"/>
+                                        <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_TF" Height="20" Width="100" IsEnabled="False"/>
+                                        <Button Content="生成至" Click ="GenTableBtn_Click"  Name="genTableBtn_Release" Height="20" Width="100" IsEnabled="False"/>
+                                    </StackPanel>
+
+                                    <DataGrid x:Name="propertyDataGrid" DockPanel.Dock="Bottom" ItemsSource="{Binding}" AutoGenerateColumns="False" IsReadOnly="True" 
+                                              CanUserResizeColumns="False" CanUserReorderColumns="False" CanUserResizeRows="False" CanUserSortColumns="False"
+                                              SelectedCellsChanged="PropertyDataGrid_SelectionChanged">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="字段名" Width="120" Binding="{Binding PropertyName}"/>
+                                            <DataGridTextColumn Header="本地内容" Width="165" Binding="{Binding Context}"/>
+                                            <DataGridTextColumn Header="Trunk" Width="100" Binding="{Binding Trunk}"/>
+                                            <DataGridTextColumn Header="Studio" Width="100" Binding="{Binding Studio}"/>
+                                            <DataGridTextColumn Header="TF" Width="100" Binding="{Binding TF}"/>
+                                            <DataGridTextColumn Header="Release" Width="100" Binding="{Binding Release}"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
                             </avalonDock:LayoutAnchorable>
                         </avalonDock:LayoutDocumentPane>
                     </avalonDock:LayoutPanel>

@@ -47,8 +47,9 @@ namespace ExcelTools
             "/serverexcel",
             "/SubConfigs"
         };
+        const string ExcelPath = "../VersionToolRoot/Excel";
         const string _URL = "svn://svn.sg.xindong.com/RO/client-trunk";
-        const string _FolderServerExvel = "/serverexcel";
+        const string _FolderServerExcel = "/serverexcel";
         const string _FolderSubConfigs = "/SubConfigs";
         const string _Ext = ".xlsx";
         const string _TempRename = "_tmp";
@@ -56,14 +57,10 @@ namespace ExcelTools
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             LoadConfig();
-            #region 初始化各列表
-            excelListView.SelectionChanged += FileListView_SelectionChange;
-            idListView.SelectionChanged += IDListView_SelectChange;
             excelListView.Items.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
             excelListView.Items.SortDescriptions.Add(new SortDescription("IsEditing", ListSortDirection.Descending));
             excelListView.Items.IsLiveSorting = true;
             propertyDataGrid.SelectionUnit = DataGridSelectionUnit.Cell;
-            #endregion
             GetRevision();
             CheckStateBtn_Click(null, null);
 
@@ -88,7 +85,7 @@ namespace ExcelTools
 
         private void LoadFiles()
         {
-            _Folders[0] = GlobalCfg.SourcePath + _FolderServerExvel;
+            _Folders[0] = GlobalCfg.SourcePath + _FolderServerExcel;
             _Folders[1] = GlobalCfg.SourcePath + _FolderSubConfigs;
             _ExcelFiles.Clear();
             List<string> files = FileUtil.CollectAllFolders(_Folders, _Ext);
@@ -112,29 +109,14 @@ namespace ExcelTools
         {
             if (force || !File.Exists(_ConfigPath))
             {
-                ChooseSourcePath();
+                //使用相对路径固定表格位置
+                GlobalCfg.SourcePath = ExcelPath;
             }
             using (StreamReader cfgSt = new StreamReader(_ConfigPath))
             {    
                 GlobalCfg.SourcePath = cfgSt.ReadLine();
                 cfgSt.Close();    
             }        
-        }
-
-        private void ChooseSourcePath()
-        {
-            System.Windows.Forms.FolderBrowserDialog folderBrowser = new System.Windows.Forms.FolderBrowserDialog
-            {
-                Description = "选择Cehua/Table位置：",
-                ShowNewFolderButton = false,
-            };
-            folderBrowser.ShowDialog();
-            string path = folderBrowser.SelectedPath.Replace(@"\", "/");
-            using (StreamWriter cfgSt = new StreamWriter(_ConfigPath))
-            {
-                cfgSt.WriteLine(path);
-                cfgSt.Close();
-            }
         }
         #endregion
 
@@ -194,6 +176,7 @@ namespace ExcelTools
                 ename = propertyList[i].ename;
                 fieldList.Add(new PropertyListItem()
                 {
+                    IsCheck = true,
                     PropertyName = propertyList[i].cname + "（" + ename + "）",
                     EnName = ename,
                     Context = configs[0] != null && configs[0].propertiesDic.ContainsKey(ename) ? configs[0].propertiesDic[ename].value : null,
@@ -440,22 +423,36 @@ namespace ExcelTools
             IDListView_SelectChange(idListView, null);
         }
 
+        #region 过滤操作（搜索，筛选）
+        private bool IsSearchingExcel = false;
+        private bool IsSearchingId = false;
+        private bool IsCheckEditing = false;
+        private bool IsCheckChanged = false;
+        private bool IsCheckApplyed = false;
+        private string excelSearchKey = null;
+        private string idSearchKey = null;
+
         private void SearchBox_OnSearch(object sender, SearchEventArgs e)
         {
             SearchBox searchBox = sender as SearchBox;
             switch (searchBox.Name)
             {
                 case "excelSearchBox":
-                    ScrollToMatchItem<ExcelFileListItem>(excelListView, e.SearchText);
+                    IsSearchingExcel = true;
+                    excelSearchKey = e.SearchText;
+                    FilterItems(excelListView);
                     break;
                 case "idSearchBox":
-                    ScrollToMatchItem<IDListItem>(idListView, e.SearchText);
+                    IsSearchingId = true;
+                    idSearchKey = e.SearchText;
+                    FilterItems(idListView);
                     break;
                 default:
                     break;
             }
 
-            void ScrollToMatchItem<T>(ListView listView, string input)
+            #region 获得搜索数据
+            ObservableCollection<T> GetMatchItem<T>(ListView listView, string input)
             {
                 bool IsMatchFromStart = true;
                 if (input.StartsWith("*"))
@@ -463,6 +460,7 @@ namespace ExcelTools
                     IsMatchFromStart = false;
                     input = input.Substring(1);
                 }
+                ObservableCollection<T> searchRes = new ObservableCollection<T>();
                 for(int i = 0; i < listView.Items.Count; i++)
                 {
                     T item = (T)listView.Items[i];
@@ -479,16 +477,36 @@ namespace ExcelTools
                     }
                     else
                     {
-                        return;
+                        return null;
                     }
                     if(StringHelper.StringMatch(ss, input, IsMatchFromStart, false))
                     {
-                        listView.ScrollIntoView(item);
-                        listView.SelectedItem = item;
-                        return;
+                        searchRes.Add(item);
                     }
                 }
-                return;
+                return searchRes;
+            }
+            #endregion
+        }
+
+        private void SearchBox_OnCancelSearch(object sender, CancelSearchEventArgs e)
+        {
+            SearchBox searchBox = sender as SearchBox;
+            switch (searchBox.Name)
+            {
+                case "excelSearchBox":
+                    IsSearchingExcel = false;
+                    excelSearchKey = null;
+                    FilterItems(excelListView);
+                    break;
+                case "idSearchBox":
+                    IsSearchingId = false;
+                    idSearchKey = null;
+                    if (_excelItemChoosed != null)
+                        FilterItems(idListView);
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -505,32 +523,30 @@ namespace ExcelTools
             switch (checkBox.Name)
             {
                 case CHECKBOX_EDITING_NAME:
-                    ObservableCollection<ExcelFileListItem> editFilteredCollection =
-                        GetFilteredCollection(_ExcelFiles, FILTER_BY_EDITING);
-                    excelListView.ItemsSource = editFilteredCollection;
+                    IsCheckEditing = true;
+                    FilterItems(excelListView);
                     break;
                 case CHECKBOX_CHANGED_NAME:
+                    IsCheckChanged = true;
                     checkBox_applyed.IsChecked = false;
-                    ObservableCollection<IDListItem> changedFilteredCollection =
-                        GetFilteredCollection(GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath), FILTER_BY_STATES);
-                    idListView.ItemsSource = changedFilteredCollection;
+                    FilterItems(idListView);
                     break;
                 case CHECKBOX_APPLYED_NAME:
+                    IsCheckApplyed = true;
                     checkBox_changed.IsChecked = false;
-                    ObservableCollection<IDListItem> applyFilteredCollection =
-                        GetFilteredCollection(GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath), FILTER_BY_APPLY);
-                    idListView.ItemsSource = applyFilteredCollection;
+                    FilterItems(idListView);
                     break;
                 default:
                     break;
             }
             #region 获得过滤后数据
-            ObservableCollection<T> GetFilteredCollection<T>(ObservableCollection<T> sourceCollection, string filterBy)
+            ObservableCollection<T> GetFilteredCollection<T>(ListView listView, string filterBy)
             {
                 ObservableCollection<T> filteredCollection = new ObservableCollection<T>();
-                foreach(T item in sourceCollection)
+                for (int j = 0; j < listView.Items.Count; j++)
                 {
-                    if(item is ExcelFileListItem && filterBy == FILTER_BY_EDITING)
+                    T item = (T)listView.Items[j];
+                    if (item is ExcelFileListItem && filterBy == FILTER_BY_EDITING)
                     {
                         ExcelFileListItem excelItem = item as ExcelFileListItem;
                         if (excelItem.IsEditing)
@@ -576,15 +592,150 @@ namespace ExcelTools
             switch (checkBox.Name)
             {
                 case CHECKBOX_EDITING_NAME:
-                    excelListView.ItemsSource = _ExcelFiles;
+                    IsCheckEditing = false;
+                    FilterItems(excelListView);
                     break;
                 case CHECKBOX_CHANGED_NAME:
+                    IsCheckChanged = false;
+                    FilterItems(idListView);
+                    break;
                 case CHECKBOX_APPLYED_NAME:
-                    idListView.ItemsSource = GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath);
+                    IsCheckApplyed = false;
+                    FilterItems(idListView);
                     break;
                 default:
                     break;
             }
+        }
+
+        private void FilterItems(ListView list)
+        {
+            switch (list.Name)
+            {
+                case "excelListView":
+                    ObservableCollection<ExcelFileListItem> excelRes = _ExcelFiles;
+                    if (IsCheckEditing) {
+                        excelRes = GetFilteredCollection<ExcelFileListItem>(list, FILTER_BY_EDITING);
+                    }
+                    list.ItemsSource = excelRes;
+                    if (IsSearchingExcel)
+                        excelRes = GetMatchItem<ExcelFileListItem>(list, excelSearchKey);
+                    list.ItemsSource = excelRes;
+                    break;
+                case "idListView":
+                    if(_excelItemChoosed == null)
+                    {
+                        return;
+                    }
+                    ObservableCollection<IDListItem> idRes = GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath);
+                    if (IsCheckChanged)
+                    {
+                        idRes = GetFilteredCollection<IDListItem>(list, FILTER_BY_STATES);
+                    }
+                    else if (IsCheckApplyed)
+                    {
+                        idRes = GetFilteredCollection<IDListItem>(list, FILTER_BY_APPLY);
+                    }
+                    list.ItemsSource = idRes;
+                    if (IsSearchingId)
+                        idRes = GetMatchItem<IDListItem>(list, idSearchKey);
+                    list.ItemsSource = idRes;
+                    break;
+            }
+            #region 获得搜索数据
+            ObservableCollection<T> GetMatchItem<T>(ListView listView, string input)
+            {
+                bool IsMatchFromStart = true;
+                if (input.StartsWith("*"))
+                {
+                    IsMatchFromStart = false;
+                    input = input.Substring(1);
+                }
+                ObservableCollection<T> searchRes = new ObservableCollection<T>();
+                for (int i = 0; i < listView.Items.Count; i++)
+                {
+                    T item = (T)listView.Items[i];
+                    string ss = null;
+                    if (item is ExcelFileListItem)
+                    {
+                        ExcelFileListItem excelItem = item as ExcelFileListItem;
+                        ss = excelItem.Name;
+                    }
+                    else if (item is IDListItem)
+                    {
+                        IDListItem idItem = item as IDListItem;
+                        ss = idItem.IdDisplay;
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                    if (StringHelper.StringMatch(ss, input, IsMatchFromStart, false))
+                    {
+                        searchRes.Add(item);
+                    }
+                }
+                return searchRes;
+            }
+            #endregion
+            #region 获得过滤后数据
+            ObservableCollection<T> GetFilteredCollection<T>(ListView listView, string filterBy)
+            {
+                ObservableCollection<T> filteredCollection = new ObservableCollection<T>();
+                for (int j = 0; j < listView.Items.Count; j++)
+                {
+                    T item = (T)listView.Items[j];
+                    if (item is ExcelFileListItem && filterBy == FILTER_BY_EDITING)
+                    {
+                        ExcelFileListItem excelItem = item as ExcelFileListItem;
+                        if (excelItem.IsEditing)
+                        {
+                            filteredCollection.Add(item);
+                        }
+                    }
+                    else if (item is IDListItem)
+                    {
+                        IDListItem idItem = item as IDListItem;
+                        if (filterBy == FILTER_BY_STATES)
+                        {
+                            for (int i = 0; i < idItem.States.Count; i++)
+                            {
+                                if (idItem.States[i] != "")
+                                {
+                                    filteredCollection.Add(item);
+                                    break;
+                                }
+                            }
+                        }
+                        else if (filterBy == FILTER_BY_APPLY)
+                        {
+                            for (int i = 0; i < idItem.IsApplys.Count; i++)
+                            {
+                                if (idItem.IsApplys[i])
+                                {
+                                    filteredCollection.Add(item);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                return filteredCollection;
+            }
+            #endregion
+        }
+
+        #endregion
+
+        private void PropertyDataGrid_SelectionChanged(object sender, SelectedCellsChangedEventArgs args)
+        {
+            DataGrid propertyDataGrid = sender as DataGrid;
+            if (propertyDataGrid.SelectedCells.Count <= 0)
+            {
+                return;
+            }
+            PropertyListItem row = propertyDataGrid.SelectedCells[0].Item as PropertyListItem;
+            FrameworkElement cell = propertyDataGrid.SelectedCells[0].Column.GetCellContent(row);
         }
     }
 }

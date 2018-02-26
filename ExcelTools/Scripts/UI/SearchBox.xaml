@@ -34,7 +34,7 @@
             </TextBox.Template>
         </TextBox>
 
-        <Button x:Name="BtnSearch" Grid.Column="2" Click="BtnSearch_OnClick" Cursor="Hand">
+        <Button x:Name="Btn" Grid.Column="2" Click="BtnSearch_OnClick" Cursor="Hand">
             <Button.Template>
                 <ControlTemplate TargetType="Button">
                     <Grid>

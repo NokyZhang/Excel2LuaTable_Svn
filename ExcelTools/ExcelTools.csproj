@@ -184,6 +184,7 @@
   <ItemGroup>
     <Content Include="NPOI.OOXML.pdb" />
     <Resource Include="Scripts\UI\search.png" />
+    <Resource Include="Scripts\UI\close.png" />
     <Content Include="Xceed.Wpf.AvalonDock.dll" />
     <Content Include="Xceed.Wpf.AvalonDock.resources.dll" />
   </ItemGroup>

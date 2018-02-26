@@ -71,7 +71,7 @@ namespace ExcelTools.Scripts.Utils
             return rowContainer;
         }
 
-        private static T GetVisualChild<T>(Visual parent) where T : Visual
+        public static T GetVisualChild<T>(Visual parent) where T : Visual
         {
             T child = default(T);
             int numVisuals = VisualTreeHelper.GetChildrenCount(parent);

@@ -18,6 +18,10 @@ namespace ExcelTools.Scripts.Utils
         /// <returns></returns>
         public static bool StringMatch(string ss, string ps, bool MatchFromStart, bool IsOrdinalIgnore = true)
         {
+            if(ps == null)
+            {
+                return true;
+            }
             if (!IsOrdinalIgnore)
             {
                 ss = ss.ToLower();
@@ -34,6 +38,10 @@ namespace ExcelTools.Scripts.Utils
                     break;
                 if(s[i] == p[j])
                 {
+                    if (i==0 && !MatchFromStart)
+                    {
+                        break;
+                    }
                     i++;
                     j++;
                 }
@@ -47,7 +55,7 @@ namespace ExcelTools.Scripts.Utils
                     j = 0;
                 }
             }
-            if (j == p.Length)
+            if (j == p.Length && p.Length != 0)
             {
                 return true;
             }
