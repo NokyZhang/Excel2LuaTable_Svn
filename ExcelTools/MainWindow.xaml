@@ -23,7 +23,7 @@
                                     <user:SearchBox x:Name="excelSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" 
                                                     OnSearch="SearchBox_OnSearch" OnCancelSearch="SearchBox_OnCancelSearch"/>
 
-                                    <CheckBox x:Name="checkBox_editing" DockPanel.Dock="Top" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked">编辑中</CheckBox>
+                                    <CheckBox x:Name="checkBox_editing" DockPanel.Dock="Top" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked">正在编辑</CheckBox>
                                     
                                     <ListView Name="excelListView" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}" 
                                               SelectionChanged="FileListView_SelectionChange">
@@ -57,8 +57,7 @@
                                     <user:SearchBox x:Name="idSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" OnSearch="SearchBox_OnSearch" OnCancelSearch="SearchBox_OnCancelSearch"/>
                                     
                                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-                                        <CheckBox x:Name="checkBox_changed" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" IsEnabled="False">有改动行</CheckBox>
-                                        <CheckBox x:Name="checkBox_applyed" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" IsEnabled="False">已生成</CheckBox>
+                                        <CheckBox x:Name="checkBox_changed" Margin="10,2,10,2" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" IsEnabled="False">各分支有差异</CheckBox>
                                     </StackPanel>
                                     
                                     <ListView x:Name="idListView" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}"
@@ -72,6 +71,16 @@
                                                 <GridViewColumn Header="Re" DisplayMemberBinding="{Binding Release_State}" Width="25" />
                                             </GridView>
                                         </ListView.View>
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="{x:Type ListViewItem}">
+                                                <Style.Triggers>
+                                                    <!--是否应用的判断-->
+                                                    <DataTrigger Binding="{Binding Path=IsApplyed}" Value="True">
+                                                        <Setter Property="Background" Value="LightGreen"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
                                     </ListView>
                                 </DockPanel>
                             </avalonDock:LayoutAnchorable>

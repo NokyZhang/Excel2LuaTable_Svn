@@ -17,7 +17,7 @@ namespace ExcelTools.Scripts
 
         public Dictionary<string, Dictionary<int, string>> applyedRows;
 
-        public void ModifiedTables(int index, table val)
+        public void SetTables(int index, table val)
         {
             if (tables.Count > index)
                 tables[index] = val;
@@ -95,7 +95,7 @@ namespace ExcelTools.Scripts
             {
                 return null;
             }
-            if (!_ExcelDic.ContainsKey(path) || reParse)
+            if (!_ExcelDic.ContainsKey(path) || reParse || _ExcelDic[path] == null)
             {
                 _ExcelDic[path] = Excel.Parse(path, isServer);
             }
@@ -132,14 +132,21 @@ namespace ExcelTools.Scripts
             string tablename = string.Format("Table_{0}", Path.GetFileNameWithoutExtension(excelpath));
             string lltpath = Path.Combine(SourcePath, LocalTmpTablePath, tablename + ".txt");
             string md5 = ExcelParserFileHelper.GetMD5HashFromFile(excelpath);
+            if(md5 == null)
+            {
+                return null;
+            }
             LuaTableData ltd = _lTableDataDic[excelpath];
             if (!File.Exists(lltpath) || md5 != ReadTableMD5(lltpath))
             {
-                ExcelParser.ReGenLuaTable(excelpath);
+                if (!ExcelParser.ReGenLuaTable(excelpath))
+                {
+                    return null;
+                }
             }
             if (!ltd.IsInitTable(0))
             {
-                ltd.ModifiedTables(0, parse(lltpath));
+                ltd.SetTables(0, parse(lltpath));
             }
             TmpTableRealPaths = GenTmpPath(tablename);
             for (int i = 1; i < TmpTableRealPaths.Count + 1; i++)
@@ -147,12 +154,12 @@ namespace ExcelTools.Scripts
                 if (File.Exists(TmpTableRealPaths[i - 1]))
                 {
                     if (!ltd.IsInitTable(i))
-                        ltd.ModifiedTables(i, parse(TmpTableRealPaths[i - 1]));
+                        ltd.SetTables(i, parse(TmpTableRealPaths[i - 1]));
                 }
                 else
                 {
                     if (!ltd.IsInitTable(i))
-                        ltd.ModifiedTables(i, null);
+                        ltd.SetTables(i, null);
                 }
             }
             return ltd;
@@ -202,11 +209,9 @@ namespace ExcelTools.Scripts
                     foreach (var id in currentLuaTableData.tableDiffs[i].deletedrows.Keys)
                     {
                         List<string> states = new List<string>();
-                        List<bool> isApplys = new List<bool>();
                         for (int k = 0; k < BranchCount; k++)
                         {
                             states.Add(DifferController.STATUS_NONE);
-                            isApplys.Add(false);
                         }
                         if (!tmpDic.ContainsKey(id))
                         {
@@ -216,7 +221,6 @@ namespace ExcelTools.Scripts
                                 IdDisplay = id,
                                 Row = -1,
                                 States = states,
-                                IsApplys = isApplys
                             });
                         }
                         tmpDic[id].SetStates(DifferController.STATUS_DELETED, i);
@@ -226,9 +230,13 @@ namespace ExcelTools.Scripts
             return tmpDic;
         }
 
-        public ref ObservableCollection<IDListItem> GetIDList(string excelpath)
+        public  ObservableCollection<IDListItem> GetIDList(string excelpath)
         {
             currentLuaTableData = InitLuaTableData(excelpath);
+            if(currentLuaTableData == null)
+            {
+                return null;
+            }
             currentExcelpath = excelpath;
             if (currentLuaTableData.tableDiffs.Count <= 0)
             {
@@ -242,23 +250,19 @@ namespace ExcelTools.Scripts
                 currentLuaTableData.idList = new ObservableCollection<IDListItem>();
                 for (int i = 0; i < currentLuaTableData.tables[0].configs.Count; i++)
                 {
-                    List<bool> isApplys = new List<bool>();
-                    for (int k = 0; k < BranchCount; k++)//初始化状态为false
-                        isApplys.Add(false);
                     currentLuaTableData.idList.Add(new IDListItem
                     {
                         ID = currentLuaTableData.tables[0].configs[i].key,
                         IdDisplay = IDListItem.GenIdDisplay(currentLuaTableData.tables[0].configs[i]),
                         Row = i,
                         States = GetRowAllStatus(currentLuaTableData.tables[0].configs[i].key),
-                        IsApplys = isApplys
                     });
                 }
                 Dictionary<string, IDListItem> tmpDic = GetExcelDeletedRow();
                 foreach (var item in tmpDic.Values)
                     currentLuaTableData.idList.Add(item);
             }
-            return ref currentLuaTableData.idList;
+            return currentLuaTableData.idList;
         }
 
         //仅修改逻辑缓存中的值，不直接修改配置文件

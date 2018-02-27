@@ -8,6 +8,11 @@ namespace ExcelTools.Scripts.UI
 {
     class IDListItem : INotifyPropertyChanged
     {
+        public IDListItem()
+        {
+            InitIsApplys();
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         public string ID { get; set; }
@@ -128,6 +133,42 @@ namespace ExcelTools.Scripts.UI
             }
         }
 
-        public List<bool> IsApplys { get; set; }
+        private List<bool> _IsApplys;
+        public List<bool> IsApplys { get { return _IsApplys; }  }
+
+        private void InitIsApplys()
+        {
+            _IsApplys = new List<bool>();
+            for (int i = 0; i < GlobalCfg.BranchCount; i++)
+            {
+                _IsApplys.Add(false);
+            }
+        } 
+
+        public void ReverseIsApply(int branchId)
+        {
+            _IsApplys[branchId] = !_IsApplys[branchId];
+            ResetIsApplyed();
+        }
+
+        #region 用于UI显示 是否有分支已经应用
+        private bool _IsApplyed;
+        public bool IsApplyed { get {return _IsApplyed; } }
+
+        private void ResetIsApplyed()
+        {
+            foreach(bool state in IsApplys)
+            {
+                if (state)
+                {
+                    _IsApplyed = true;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("IsApplyed"));
+                    return;
+                }
+            }
+            _IsApplyed = false;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("IsApplyed"));
+        }
+        #endregion
     }
 }

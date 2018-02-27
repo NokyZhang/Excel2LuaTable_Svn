@@ -31,7 +31,7 @@ public class Excel
                 return _PropertyNums;
             }
             if(_PropertyNums < 0)
-                _PropertyNums = Math.Min(RowCropNullCell(mainSheet.GetRow(0)), Math.Min(RowCropNullCell(mainSheet.GetRow(1)), RowCropNullCell(mainSheet.GetRow(2))));
+                _PropertyNums = Math.Max(RowCropNullCell(mainSheet.GetRow(0)), Math.Min(RowCropNullCell(mainSheet.GetRow(1)), RowCropNullCell(mainSheet.GetRow(2))));
             return _PropertyNums;
         }
     }
@@ -89,25 +89,33 @@ public class Excel
     static ISheet GetMainSheet(string file)
     {
         ISheet sheet = null;
-        using (FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
+        try
         {
-            try
+            using (FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
             {
-                sheet = WorkbookFactory.Create(fileStream).GetSheetAt(0);
+                try
+                {
+                    sheet = WorkbookFactory.Create(fileStream).GetSheetAt(0);
+                }
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine("Path = " + file + "\n" + e.ToString());
+                }
+                //var fileExt = Path.GetExtension(file);
+                //if (fileExt == ".xls")
+                //{
+                //    HSSFWorkbook hssfwb = new HSSFWorkbook(fileStream);
+                //    sheet = hssfwb.GetSheetAt(0);
+                //}
+                //else
+                //{
+                //}
             }
-            catch (Exception e)
-            {
-                Console.Error.WriteLine("Path = " + file + "\n" + e.ToString());
-            }
-            //var fileExt = Path.GetExtension(file);
-            //if (fileExt == ".xls")
-            //{
-            //    HSSFWorkbook hssfwb = new HSSFWorkbook(fileStream);
-            //    sheet = hssfwb.GetSheetAt(0);
-            //}
-            //else
-            //{
-            //}
+        }
+        catch (Exception ex)
+        {
+            System.Windows.Forms.MessageBoxButtons buttons = System.Windows.Forms.MessageBoxButtons.OK;
+            System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show(ex.Message + "\n请关闭" + file, "错误", buttons);
         }
         return sheet;
     }

@@ -62,7 +62,7 @@ public class ExcelParserFileHelper
     {
         try
         {
-            FileStream file = new FileStream(fileName, FileMode.Open);
+            FileStream file = new FileStream(fileName, FileMode.Open, FileAccess.Read);
             System.Security.Cryptography.MD5 md5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
             byte[] retVal = md5.ComputeHash(file);
             file.Close();
@@ -76,7 +76,9 @@ public class ExcelParserFileHelper
         }
         catch (Exception ex)
         {
-            throw new Exception("GetMD5HashFromFile() fail,error:" + ex.Message);
+            System.Windows.Forms.MessageBoxButtons buttons = System.Windows.Forms.MessageBoxButtons.OK;
+            System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show(ex.Message + "\n请关闭" + fileName, "错误", buttons);
+            return null;
         }
     }
 

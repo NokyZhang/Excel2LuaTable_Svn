@@ -69,14 +69,23 @@ class ExcelParser
         //}
     }
 
-    public static void ReGenLuaTable(string xlsxPath)
+    public static bool ReGenLuaTable(string xlsxPath)
     {
         Excel excel = GlobalCfg.Instance.GetParsedExcel(xlsxPath);
+        if(excel == null)
+        {
+            return false;
+        }
         string fname = excel.tableName + ".txt";
         string md5 = ExcelParserFileHelper.GetMD5HashFromFile(xlsxPath);
+        if(md5 == null)
+        {
+            return false;
+        }
         string contents = "--md5:" + md5 + "\n";
         contents += excel.ToString();
         FileUtil.WriteTextFile(contents, Path.Combine(GlobalCfg.SourcePath, GlobalCfg.LocalTmpTablePath, fname));
+        return false;
     }
 
     //版本库中最新的表格若未生成配置则生成临时配置

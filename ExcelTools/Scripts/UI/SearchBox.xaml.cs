@@ -56,7 +56,7 @@ namespace ExcelTools.Scripts.UI
 
         private void ExeccuteSearch()
         {
-            if (OnSearch != null)
+            if (OnSearch != null && TbxInput.Text != "")
             {
                 var args = new SearchEventArgs();
                 args.SearchText = TbxInput.Text;

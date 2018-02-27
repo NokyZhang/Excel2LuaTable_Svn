@@ -127,9 +127,9 @@ namespace ExcelTools
 
         private void FileListView_SelectionChange(object sender, SelectionChangedEventArgs e)
         {
-            if (sender != null)
+            ListView listView = sender as ListView;
+            if (listView != null)
             {
-                ListView listView = sender as ListView;
                 ExcelFileListItem item = listView.SelectedItem as ExcelFileListItem;
                 _excelItemChoosed = item;
             }
@@ -140,8 +140,6 @@ namespace ExcelTools
                 propertyDataGrid.ItemsSource = null;
                 checkBox_changed.IsEnabled = false;
                 checkBox_changed.IsChecked = false;
-                checkBox_applyed.IsEnabled = false;
-                checkBox_applyed.IsChecked = false;
             }
             else
             {
@@ -150,9 +148,11 @@ namespace ExcelTools
                 idListView.ItemsSource = GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath);
                 checkBox_changed.IsEnabled = true;
                 checkBox_changed.IsChecked = false;
-                checkBox_applyed.IsEnabled = true;
-                checkBox_applyed.IsChecked = false;
                 ResetGenBtnState();
+            }
+            if(listView != null && idListView.ItemsSource == null)
+            {
+                listView.SelectedItem = null;
             }
         }
 
@@ -168,15 +168,37 @@ namespace ExcelTools
             ObservableCollection<PropertyListItem> fieldList = new ObservableCollection<PropertyListItem>();
 
             Excel excel = GlobalCfg.Instance.GetParsedExcel(_excelItemChoosed.FilePath);
+            if(excel == null)
+            {
+                (sender as ListView).SelectedItem = null;
+                return;
+            }
             List<PropertyInfo> propertyList = excel.Properties;
             List<lparser.config> configs = GlobalCfg.Instance.GetTableRow(item.ID);
-            string ename = string.Empty;
-            for (int i = 0; i < propertyList.Count; i++)
+            lparser.config fullConfig = configs[0];
+            foreach(lparser.config config in configs)
             {
-                ename = propertyList[i].ename;
+                if(config != null)
+                {
+                    if (config.properties.Count > fullConfig.properties.Count)
+                    {
+                        fullConfig = config;
+                    }
+                }
+            }
+            string ename = string.Empty;
+            string cname = string.Empty;
+            for (int i = 0, j = 0; i < fullConfig.properties.Count; i++)
+            {
+                ename = fullConfig.properties[i].name;
+                while (propertyList[j].ename != ename)
+                {
+                    j++;
+                }
+                cname = propertyList[j].cname;
                 fieldList.Add(new PropertyListItem()
                 {
-                    PropertyName = propertyList[i].cname + "（" + ename + "）",
+                    PropertyName = cname + "（" + ename + "）",
                     EnName = ename,
                     Context = configs[0] != null && configs[0].propertiesDic.ContainsKey(ename) ? configs[0].propertiesDic[ename].value : null,
                     Trunk = configs[1] != null && configs[1].propertiesDic.ContainsKey(ename) ? configs[1].propertiesDic[ename].value : null,
@@ -410,11 +432,11 @@ namespace ExcelTools
                 switch (genBtn.Content) {
                     case STATE_GEN:
                         GlobalCfg.Instance.ApplyRow(idx, _IDItemSelected);
-                        _IDItemSelected.IsApplys[idx] = true;
+                        _IDItemSelected.ReverseIsApply(idx);
                         break;
                     case STATE_CANCEL:
                         GlobalCfg.Instance.CancelRow(idx, _IDItemSelected);
-                        _IDItemSelected.IsApplys[idx] = false;
+                        _IDItemSelected.ReverseIsApply(idx);
                         break;
                 }
             }
@@ -474,7 +496,6 @@ namespace ExcelTools
 
         const string CHECKBOX_EDITING_NAME = "checkBox_editing";
         const string CHECKBOX_CHANGED_NAME = "checkBox_changed";
-        const string CHECKBOX_APPLYED_NAME = "checkBox_applyed";
         const string FILTER_BY_EDITING = "IsEditing";
         const string FILTER_BY_STATES = "States";
         const string FILTER_BY_APPLY = "IsApplys";
@@ -490,12 +511,6 @@ namespace ExcelTools
                     break;
                 case CHECKBOX_CHANGED_NAME:
                     IsCheckChanged = true;
-                    checkBox_applyed.IsChecked = false;
-                    FilterItems(idListView);
-                    break;
-                case CHECKBOX_APPLYED_NAME:
-                    IsCheckApplyed = true;
-                    checkBox_changed.IsChecked = false;
                     FilterItems(idListView);
                     break;
                 default:
@@ -514,10 +529,6 @@ namespace ExcelTools
                     break;
                 case CHECKBOX_CHANGED_NAME:
                     IsCheckChanged = false;
-                    FilterItems(idListView);
-                    break;
-                case CHECKBOX_APPLYED_NAME:
-                    IsCheckApplyed = false;
                     FilterItems(idListView);
                     break;
                 default:
@@ -548,10 +559,6 @@ namespace ExcelTools
                     if (IsCheckChanged)
                     {
                         idRes = GetFilteredCollection(idRes, FILTER_BY_STATES);
-                    }
-                    else if (IsCheckApplyed)
-                    {
-                        idRes = GetFilteredCollection(idRes, FILTER_BY_APPLY);
                     }
                     list.ItemsSource = idRes;
                     if (IsSearchingId)
@@ -622,13 +629,7 @@ namespace ExcelTools
                                     filteredCollection.Add(item);
                                     break;
                                 }
-                            }
-                        }
-                        else if (filterBy == FILTER_BY_APPLY)
-                        {
-                            for (int i = 0; i < idItem.IsApplys.Count; i++)
-                            {
-                                if (idItem.IsApplys[i])
+                                else if (idItem.IsApplys[i])
                                 {
                                     filteredCollection.Add(item);
                                     break;
