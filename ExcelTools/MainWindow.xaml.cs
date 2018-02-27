@@ -449,43 +449,6 @@ namespace ExcelTools
                 default:
                     break;
             }
-
-            #region 获得搜索数据
-            ObservableCollection<T> GetMatchItem<T>(ListView listView, string input)
-            {
-                bool IsMatchFromStart = true;
-                if (input.StartsWith("*"))
-                {
-                    IsMatchFromStart = false;
-                    input = input.Substring(1);
-                }
-                ObservableCollection<T> searchRes = new ObservableCollection<T>();
-                for(int i = 0; i < listView.Items.Count; i++)
-                {
-                    T item = (T)listView.Items[i];
-                    string ss = null;
-                    if(item is ExcelFileListItem)
-                    {
-                        ExcelFileListItem excelItem = item as ExcelFileListItem;
-                        ss = excelItem.Name;
-                    }
-                    else if(item is IDListItem)
-                    {
-                        IDListItem idItem = item as IDListItem;
-                        ss = idItem.IdDisplay;
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                    if(StringHelper.StringMatch(ss, input, IsMatchFromStart, false))
-                    {
-                        searchRes.Add(item);
-                    }
-                }
-                return searchRes;
-            }
-            #endregion
         }
 
         private void SearchBox_OnCancelSearch(object sender, CancelSearchEventArgs e)
@@ -538,51 +501,6 @@ namespace ExcelTools
                 default:
                     break;
             }
-            #region 获得过滤后数据
-            ObservableCollection<T> GetFilteredCollection<T>(ListView listView, string filterBy)
-            {
-                ObservableCollection<T> filteredCollection = new ObservableCollection<T>();
-                for (int j = 0; j < listView.Items.Count; j++)
-                {
-                    T item = (T)listView.Items[j];
-                    if (item is ExcelFileListItem && filterBy == FILTER_BY_EDITING)
-                    {
-                        ExcelFileListItem excelItem = item as ExcelFileListItem;
-                        if (excelItem.IsEditing)
-                        {
-                            filteredCollection.Add(item);
-                        }
-                    }
-                    else if(item is IDListItem)
-                    {
-                        IDListItem idItem = item as IDListItem;
-                        if(filterBy == FILTER_BY_STATES)
-                        {
-                            for(int i = 0; i < idItem.States.Count; i++)
-                            {
-                                if(idItem.States[i] != "")
-                                {
-                                    filteredCollection.Add(item);
-                                    break;
-                                }
-                            }
-                        }
-                        else if(filterBy == FILTER_BY_APPLY)
-                        {
-                            for (int i = 0; i < idItem.IsApplys.Count; i++)
-                            {
-                                if (idItem.IsApplys[i])
-                                {
-                                    filteredCollection.Add(item);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                return filteredCollection;
-            }
-            #endregion
         }
 
         private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
@@ -614,11 +532,11 @@ namespace ExcelTools
                 case "excelListView":
                     ObservableCollection<ExcelFileListItem> excelRes = _ExcelFiles;
                     if (IsCheckEditing) {
-                        excelRes = GetFilteredCollection<ExcelFileListItem>(list, FILTER_BY_EDITING);
+                        excelRes = GetFilteredCollection(excelRes, FILTER_BY_EDITING);
                     }
                     list.ItemsSource = excelRes;
                     if (IsSearchingExcel)
-                        excelRes = GetMatchItem<ExcelFileListItem>(list, excelSearchKey);
+                        excelRes = GetMatchItem(excelRes, excelSearchKey);
                     list.ItemsSource = excelRes;
                     break;
                 case "idListView":
@@ -629,20 +547,20 @@ namespace ExcelTools
                     ObservableCollection<IDListItem> idRes = GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath);
                     if (IsCheckChanged)
                     {
-                        idRes = GetFilteredCollection<IDListItem>(list, FILTER_BY_STATES);
+                        idRes = GetFilteredCollection(idRes, FILTER_BY_STATES);
                     }
                     else if (IsCheckApplyed)
                     {
-                        idRes = GetFilteredCollection<IDListItem>(list, FILTER_BY_APPLY);
+                        idRes = GetFilteredCollection(idRes, FILTER_BY_APPLY);
                     }
                     list.ItemsSource = idRes;
                     if (IsSearchingId)
-                        idRes = GetMatchItem<IDListItem>(list, idSearchKey);
+                        idRes = GetMatchItem(idRes, idSearchKey);
                     list.ItemsSource = idRes;
                     break;
             }
             #region 获得搜索数据
-            ObservableCollection<T> GetMatchItem<T>(ListView listView, string input)
+            ObservableCollection<T> GetMatchItem<T>(ObservableCollection<T> sourceItem, string input)
             {
                 bool IsMatchFromStart = true;
                 if (input.StartsWith("*"))
@@ -651,9 +569,9 @@ namespace ExcelTools
                     input = input.Substring(1);
                 }
                 ObservableCollection<T> searchRes = new ObservableCollection<T>();
-                for (int i = 0; i < listView.Items.Count; i++)
+                for (int i = 0; i < sourceItem.Count; i++)
                 {
-                    T item = (T)listView.Items[i];
+                    T item = (T)sourceItem[i];
                     string ss = null;
                     if (item is ExcelFileListItem)
                     {
@@ -678,12 +596,12 @@ namespace ExcelTools
             }
             #endregion
             #region 获得过滤后数据
-            ObservableCollection<T> GetFilteredCollection<T>(ListView listView, string filterBy)
+            ObservableCollection<T> GetFilteredCollection<T>(ObservableCollection<T> sourceItem, string filterBy)
             {
                 ObservableCollection<T> filteredCollection = new ObservableCollection<T>();
-                for (int j = 0; j < listView.Items.Count; j++)
+                for (int j = 0; j < sourceItem.Count; j++)
                 {
-                    T item = (T)listView.Items[j];
+                    T item = (T)sourceItem[j];
                     if (item is ExcelFileListItem && filterBy == FILTER_BY_EDITING)
                     {
                         ExcelFileListItem excelItem = item as ExcelFileListItem;
