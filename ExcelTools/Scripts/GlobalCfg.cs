@@ -1,8 +1,10 @@
 ﻿using ExcelTools.Scripts.UI;
 using ExcelTools.Scripts.Utils;
 using Lua;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using static ExcelTools.Scripts.Utils.DifferController;
 using static Lua.lparser;
@@ -11,34 +13,17 @@ namespace ExcelTools.Scripts
 {
     class LuaTableData
     {
-        public List<table> tables;
+        public table[] tables = new table[GlobalCfg.BranchCount + 1];
         public List<tablediff> tableDiffs;
         public ObservableCollection<IDListItem> idList;
 
         public Dictionary<string, Dictionary<int, string>> applyedRows;
-
-        public void SetTables(int index, table val)
-        {
-            if (tables.Count > index)
-                tables[index] = val;
-            else
-                tables.Add(val);
-        }
-
-        public bool IsInitTable(int index)
-        {
-            if (tables.Count > index)
-                return true;
-            else
-                return false;
-        }
     }
 
     class GlobalCfg
     {
         //表格的路径
         static public string SourcePath = null;
-        static public string LocalTmpTablePath = "../TmpTable/Local/";
         //现处于管理中的分支
         static public List<string> BranchURLs = new List<string>()
         {
@@ -47,15 +32,14 @@ namespace ExcelTools.Scripts
             "svn://svn.sg.xindong.com/RO/client-branches/TF",
             "svn://svn.sg.xindong.com/RO/client-branches/Release"
         };
-        static public List<string> TmpTableRelativePaths = new List<string>()
+        const string LuaLocalPath = "../TmpTable/Local/";
+        static public List<string> LuaTablePaths = new List<string>()
         {
             "../TmpTable/Trunk/",
             "../TmpTable/Studio/",
             "../TmpTable/TF/",
             "../TmpTable/Release/"
         };
-
-        static public List<string> TmpTableRealPaths;       
 
         static public int BranchCount { get { return BranchURLs.Count; } }
 
@@ -97,7 +81,7 @@ namespace ExcelTools.Scripts
             }
             if (!_ExcelDic.ContainsKey(path) || reParse || _ExcelDic[path] == null)
             {
-                _ExcelDic[path] = Excel.Parse(path, isServer);
+                _ExcelDic[path] = Excel.Parse(path);
             }
             return _ExcelDic[path];
         }
@@ -112,9 +96,7 @@ namespace ExcelTools.Scripts
         {
             if (_lTableDataDic.ContainsKey(currentExcelpath))
             {
-                _lTableDataDic[currentExcelpath].tables.Clear();
-                _lTableDataDic[currentExcelpath].tableDiffs.Clear();
-                _lTableDataDic[currentExcelpath].idList = null;
+                _lTableDataDic.Remove(currentExcelpath);
             }
         }
 
@@ -124,43 +106,36 @@ namespace ExcelTools.Scripts
             {
                 _lTableDataDic[excelpath] = new LuaTableData
                 {
-                    tables = new List<table>(),
                     tableDiffs = new List<tablediff>()
                 };
             }
             //对比md5，看是否需要重新生成LocalLuaTable llt
             string tablename = string.Format("Table_{0}", Path.GetFileNameWithoutExtension(excelpath));
-            string lltpath = Path.Combine(SourcePath, LocalTmpTablePath, tablename + ".txt");
+            string slltpath = GetLocalServerLuaPath(tablename);
+            string clltpath = GetLocalClientLuaPath(excelpath);
             string md5 = ExcelParserFileHelper.GetMD5HashFromFile(excelpath);
+            bool isServer = ExcelParserFileHelper.IsServer(excelpath);
             if(md5 == null)
             {
                 return null;
             }
             LuaTableData ltd = _lTableDataDic[excelpath];
-            if (!File.Exists(lltpath) || md5 != ReadTableMD5(lltpath))
+            if (!File.Exists(slltpath) || md5 != ReadTableMD5(slltpath) 
+                || (!isServer && (!File.Exists(clltpath) || md5 != ReadTableMD5(clltpath))))
             {
                 if (!ExcelParser.ReGenLuaTable(excelpath))
                 {
                     return null;
                 }
             }
-            if (!ltd.IsInitTable(0))
+            ltd.tables[0] = parse(slltpath, excelpath);
+            for (int i = 1; i < BranchCount + 1; i++)
             {
-                ltd.SetTables(0, parse(lltpath));
-            }
-            TmpTableRealPaths = GenTmpPath(tablename);
-            for (int i = 1; i < TmpTableRealPaths.Count + 1; i++)
-            {
-                if (File.Exists(TmpTableRealPaths[i - 1]))
-                {
-                    if (!ltd.IsInitTable(i))
-                        ltd.SetTables(i, parse(TmpTableRealPaths[i - 1]));
-                }
+                string serverLuaPath = GetBranchServerLuaPath(tablename, i-1);
+                if (File.Exists(serverLuaPath))
+                    ltd.tables[i] = parse(serverLuaPath, excelpath);
                 else
-                {
-                    if (!ltd.IsInitTable(i))
-                        ltd.SetTables(i, null);
-                }
+                    ltd.tables[i] = null;
             }
             return ltd;
         }
@@ -240,7 +215,7 @@ namespace ExcelTools.Scripts
             currentExcelpath = excelpath;
             if (currentLuaTableData.tableDiffs.Count <= 0)
             {
-                for (int i = 1; i < currentLuaTableData.tables.Count; i++)
+                for (int i = 1; i < currentLuaTableData.tables.Length; i++)
                 {
                     currentLuaTableData.tableDiffs.Add(CompareTable(currentLuaTableData.tables[0], currentLuaTableData.tables[i]));
                 }
@@ -316,17 +291,21 @@ namespace ExcelTools.Scripts
         //根据目前选择的操作，修改配置文件
         public void ExcuteModified(int branchIdx)
         {
-            table bt = currentLuaTableData.tables[branchIdx + 1];//branch table
-            tablediff btd = currentLuaTableData.tableDiffs[branchIdx];//branch tablediff
-            string tmp = bt.GenString(null, btd);
-            string aimTmpPath = TmpTableRealPaths[branchIdx];
-            FileUtil.WriteTextFile(tmp, aimTmpPath);
+            table bt = currentLuaTableData.tables[branchIdx + 1];
+            string serverContent = bt.GenString(null, true);
+            string clientContent = bt.GenString(null, false);
+            string serverAimTmpPath = GetBranchServerLuaPath(bt.name, branchIdx);
+            string clientAimTmpPath = GetBranchClientLuaPath(currentExcelpath, branchIdx);
+            FileUtil.WriteTextFile(serverContent, serverAimTmpPath);
+            FileUtil.WriteTextFile(clientContent, clientAimTmpPath);
+            //loptimal.optimal(aimTmpPath, );
+            Instance.ClearCurrent();
         }
 
         public List<config> GetTableRow(string id)
         {
             List<config> rows = new List<config>();
-            for (int i = 0; i < currentLuaTableData.tables.Count; i++)
+            for (int i = 0; i < currentLuaTableData.tables.Length; i++)
             {
                 if (currentLuaTableData.tables[i] != null && currentLuaTableData.tables[i].configsDic.ContainsKey(id))
                     rows.Add(currentLuaTableData.tables[i].configsDic[id]);
@@ -336,21 +315,30 @@ namespace ExcelTools.Scripts
             return rows;
         }
 
-        //生成临时table的路径
-        private static List<string> GenTmpPath(string tableName)
+        public static string GetBranchServerLuaPath(string tableName, int branchId)
         {
-            Directory.CreateDirectory(Path.Combine(SourcePath, TmpTableRelativePaths[0]));
-            Directory.CreateDirectory(Path.Combine(SourcePath, TmpTableRelativePaths[1]));
-            Directory.CreateDirectory(Path.Combine(SourcePath, TmpTableRelativePaths[2]));
-            Directory.CreateDirectory(Path.Combine(SourcePath, TmpTableRelativePaths[3]));
-            List<string> tmpFolders = new List<string>
-            {
-                Path.Combine(SourcePath, TmpTableRelativePaths[0], tableName) + _Local_Table_Ext,
-                Path.Combine(SourcePath, TmpTableRelativePaths[1], tableName) + _Local_Table_Ext,
-                Path.Combine(SourcePath, TmpTableRelativePaths[2], tableName) + _Local_Table_Ext,
-                Path.Combine(SourcePath, TmpTableRelativePaths[3], tableName) + _Local_Table_Ext
-            };
-            return tmpFolders;
+            Directory.CreateDirectory(Path.Combine(SourcePath, LuaTablePaths[branchId]));
+            return Path.Combine(SourcePath, LuaTablePaths[branchId], tableName) + _Local_Table_Ext;
+        }
+
+        public static string GetBranchClientLuaPath(string excelPath, int branchId)
+        {
+            string clientLuaPath = ExcelParserFileHelper.GetTempLuaPath(excelPath, false);
+            clientLuaPath = clientLuaPath.Replace("/tmp/", LuaTablePaths[branchId].Substring(2));
+            return clientLuaPath;
+        }
+
+        public static string GetLocalServerLuaPath(string tableName)
+        {
+            Directory.CreateDirectory(Path.Combine(SourcePath, LuaLocalPath));
+            return Path.Combine(SourcePath, LuaLocalPath, tableName) + _Local_Table_Ext;
+        }
+
+        public static string GetLocalClientLuaPath(string excelPath)
+        {
+            string clientLuaPath = ExcelParserFileHelper.GetTempLuaPath(excelPath, false);
+            clientLuaPath = clientLuaPath.Replace("/tmp/", LuaLocalPath.Substring(2));
+            return clientLuaPath;
         }
     }
 }

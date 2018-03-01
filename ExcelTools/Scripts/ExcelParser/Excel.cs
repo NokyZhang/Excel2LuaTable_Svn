@@ -15,6 +15,7 @@ public class Excel
     public ISheet mainSheet;
     public List<ExcelRow> rows = new List<ExcelRow>();
     public bool isServerTable = false;
+    private Dictionary<string, PropertyInfo> _PropertyDic = new Dictionary<string, PropertyInfo>();
     private List<PropertyInfo> _Properties = new List<PropertyInfo>();
     private int _PropertyNums = -1;
     public string tableName { get; private set; }
@@ -31,7 +32,7 @@ public class Excel
                 return _PropertyNums;
             }
             if(_PropertyNums < 0)
-                _PropertyNums = Math.Max(RowCropNullCell(mainSheet.GetRow(0)), Math.Min(RowCropNullCell(mainSheet.GetRow(1)), RowCropNullCell(mainSheet.GetRow(2))));
+                _PropertyNums = Math.Min(RowCropNullCell(mainSheet.GetRow(1)), RowCropNullCell(mainSheet.GetRow(2)));
             return _PropertyNums;
         }
     }
@@ -43,25 +44,55 @@ public class Excel
         }
     }
 
+    public Dictionary<string, PropertyInfo> PropertyDic
+    {
+        get
+        {
+            return _PropertyDic;
+        }
+    }
+
     private Excel(ISheet sheet)
     {
         mainSheet = sheet;
     }
 
-    public static Excel Parse(string file, bool _IsServer)
+    public static Excel Parse(string file)
     {
         ISheet sheet = GetMainSheet(file);
         if (sheet != null)
         {
             Excel excel = new Excel(sheet);
             excel.path = file;
-            excel.isServerTable = _IsServer;
+            excel.isServerTable = ExcelParserFileHelper.IsServer(file);
             excel.SetTableName(file);
             excel.ParsePropertyInfos();
             excel.ParseExcelContents();
             return excel;
         }
         return null;
+    }
+
+    public string ToString(bool outForServer)
+    {
+        if (!success) return string.Empty;
+        string str;
+        //用+号拼接的字符串分开Add可以略微提升性能，几毫秒级别，为了可读性不做优化。
+        List<string> strList = new List<string>();
+        strList.Add(tableName + "= {\n");
+        for (int i = 0; i < rows.Count; i++)
+        {
+            str = outForServer? rows[i].ToString() : rows[i].ToStringClient();
+            if (str != null)
+            {
+                if (i == rows.Count - 1)
+                    strList.Add("\t" + (outForServer ? rows[i].ToString() : rows[i].ToStringClient()) + "\n");
+                else
+                    strList.Add("\t" + (outForServer ? rows[i].ToString() : rows[i].ToStringClient()) + ",\n");
+            }
+        }
+        strList.Add("}\nreturn " + tableName);
+        return string.Concat(strList.ToArray());
     }
 
     public override string ToString()
@@ -146,7 +177,9 @@ public class Excel
             }
             if (i == 0)
                 _Ename = "id";
-            _Properties.Add(new PropertyInfo(GetCellStr(_IsServerRow, i), GetCellStr(_CnameRow, i), _Ename, _DataType));
+            PropertyInfo propertyInfo = new PropertyInfo(GetCellStr(_IsServerRow, i), GetCellStr(_CnameRow, i), _Ename, _DataType);
+            _Properties.Add(propertyInfo);
+            _PropertyDic.Add(propertyInfo.ename, propertyInfo);
             _Success = true;
         }
     }

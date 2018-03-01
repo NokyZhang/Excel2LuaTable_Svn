@@ -1,4 +1,5 @@
-﻿using ExcelTools.Scripts.Utils;
+﻿using ExcelTools.Scripts;
+using ExcelTools.Scripts.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,6 +17,7 @@ namespace Lua
         static string kvformat = "{0} = {1}";
         public class table
         {
+            public string sourceExlpath;
             public string md5;
             public string name;
             public List<config> configs = new List<config>();
@@ -25,10 +27,11 @@ namespace Lua
             private config oldCfg = null;
             private int oldIndex = -1;
 
-            public table(string _md5, string _name)
+            public table(string _md5, string _name, string _sourceExlPath)
             {
                 md5 = _md5;
                 name = _name;
+                sourceExlpath = _sourceExlPath;
             }
 
             public table(table t)
@@ -37,7 +40,10 @@ namespace Lua
                 name = t.name;
             }
 
-            public string GenString(Func<string> callback = null, tablediff filter = null)
+            /// <summary>
+            /// </summary>
+            /// <param name="out4Server"> 为true时，返回服务器端所需的配置（是完整的配置）；为false时，会根据Excel中的第一行的设置返回</param>
+            public string GenString(Func<string> callback = null, bool out4Server = true)
             {
                 StringBuilder sb = new StringBuilder();
                 sb.Append("--" + md5 + "\n");
@@ -45,12 +51,7 @@ namespace Lua
                 int rows = 0;
                 for (int i = 0; i < configs.Count; i++)
                 {
-                    if (filter != null && filter.addedrows.ContainsKey(configs[i].key))
-                        continue;
-                    if(filter != null && filter.modifiedrows.ContainsKey(configs[i].key))
-                        AppendConfig(ref sb, configs[i], filter.modifiedrows[configs[i].key]);
-                    else
-                        AppendConfig(ref sb, configs[i]);
+                    AppendConfig(ref sb, configs[i], out4Server);
                     rows++;
                 }
                 //if (filter != null && filter.deletedrows.Count > 0)//是否需要追加若干行配置
@@ -73,10 +74,10 @@ namespace Lua
                     AppendConfig(ref sb, conf);
             }
 
-            void AppendConfig(ref StringBuilder sb, config conf, tablerowdiff filter = null)
+            void AppendConfig(ref StringBuilder sb, config conf, bool out4Server = true)
             {
                 sb.Append("\t");
-                sb.Append(conf.GenString(filter));
+                sb.Append(conf.GenString(out4Server));
                 sb.Append(",");
                 sb.Append("\n");
             }
@@ -171,25 +172,18 @@ namespace Lua
                 key = k;
             }
 
-            public string GenString(tablerowdiff filter = null)
+            public string GenString(bool out4Server = true)
             {
                 StringBuilder sb = new StringBuilder(string.Format(configformat, key));
                 int cells = 0;
                 for(int i = 0; i < properties.Count; i++)
                 {
-                    if (filter != null && filter.deletedcells.ContainsKey(properties[i].name))
-                        continue;
-                    if(filter != null && filter.modifiedcells.ContainsKey(properties[i].name))
-                        AppendProperty(ref sb, properties[i], filter.modifiedcells[properties[i].name].value);
-                    else
-                        AppendProperty(ref sb, properties[i]);
-                    cells++;
-                }
-                if (filter != null && filter.addedcells.Count > 0)
-                {
-                    foreach (var p in filter.addedcells.Values)
-                        AppendProperty(ref sb, p);
-                    cells++;
+                    if (out4Server
+                        || (!out4Server && !properties[i].isServer))
+                    {
+                        AppendProperty(ref sb, properties[i], out4Server);
+                        cells++;
+                    }
                 }
                 if (cells > 0)//删除最后一行的逗号和空格 ", "
                     sb.Remove(sb.Length - 2, 2);
@@ -197,9 +191,9 @@ namespace Lua
                 return sb.ToString();
             }
 
-            void AppendProperty(ref StringBuilder sb, property p, string newvalue = null)
+            void AppendProperty(ref StringBuilder sb, property p, bool out4Server = true)
             {
-                sb.Append(p.GenString(newvalue));
+                sb.Append(p.GenString());
                 sb.Append(", ");
             }
 
@@ -253,12 +247,11 @@ namespace Lua
         {
             public string name;
             public string value;
+            public bool isServer = false;
 
-            public string GenString(string newvalue = null)
+            public string GenString()
             {
-                if(newvalue == null)
-                    return string.Format(kvformat, name, value);
-                return string.Format(kvformat, name, newvalue);
+                return string.Format(kvformat, name, value);
             }
         }
 
@@ -273,15 +266,19 @@ namespace Lua
             return ret;
         }
 
-        static property read_property(StreamReader sr)
+        static property read_property(StreamReader sr, string sourceExlPath)
         {
             property p = new property();
+            Excel sourceExl = GlobalCfg.Instance.GetParsedExcel(sourceExlPath, false);
             p.name = llex_lite.buff2str();/* read key */
+            if (sourceExl.PropertyDic.ContainsKey(p.name)) {
+                p.isServer = sourceExl.PropertyDic[p.name].isServerProperty;
+            }
             llex_lite.llex(sr); p.value = llex_lite.buff2str();/* read val */
             return p;
         }
 
-        static config read_config(StreamReader sr)
+        static config read_config(StreamReader sr, string sourceExlPath)
         {
             //llex_lite.llex(sr); /* read key */
             config config = new config(llex_lite.buff2str());/* read key */
@@ -289,22 +286,22 @@ namespace Lua
             string k, v = null;
             while (!sr.EndOfStream && llex_lite.llex(sr) != '}')
             {
-                property p = read_property(sr);
+                property p = read_property(sr, sourceExlPath);
                 config.properties.Add(p);
                 config.propertiesDic.Add(p.name, p);
             }
             return config;
         }
 
-        static table read_table(StreamReader sr)
+        static table read_table(StreamReader sr, string sourceExlPath)
         {
             string md5Str = read_md5comment(sr);
             llex_lite.llex(sr); /* read key */
-            table t = new table(md5Str, llex_lite.buff2str());
+            table t = new table(md5Str, llex_lite.buff2str(), sourceExlPath);
             llex_lite.llex(sr, true);/* skip '{' */
             while(!sr.EndOfStream && llex_lite.llex(sr) != '}')
             {
-                config conf = read_config(sr);
+                config conf = read_config(sr, sourceExlPath);
                 t.configs.Add(conf);
                 t.configsDic.Add(conf.key, conf);
             }
@@ -318,10 +315,10 @@ namespace Lua
             return llex_lite.buff2str();
         }
 
-        static void read_file(string path)
+        static void read_file(string path, string sourceExlPath)
         {
             StreamReader sr = new StreamReader(path);
-            table t = read_table(sr);
+            table t = read_table(sr, sourceExlPath);
             StringBuilder sb = new StringBuilder();
             Console.WriteLine("md5 = " + t.md5 + " tablename = " + t.name);
             for(int i = 0; i < t.configs.Count; i++)
@@ -338,11 +335,11 @@ namespace Lua
             }
         }
 
-        public static table parse(string path)
+        public static table parse(string path, string sourceExlpath)
         {
             using (StreamReader sr = new StreamReader(path))
             {
-                return read_table(sr);
+                return read_table(sr, sourceExlpath);
             }
         }
 

@@ -69,23 +69,31 @@ class ExcelParser
         //}
     }
 
-    public static bool ReGenLuaTable(string xlsxPath)
+    public static bool ReGenLuaTable(string exlPath)
     {
-        Excel excel = GlobalCfg.Instance.GetParsedExcel(xlsxPath);
-        if(excel == null)
+        Excel exl = GlobalCfg.Instance.GetParsedExcel(exlPath, true);
+        if(exl == null)
         {
             return false;
         }
-        string fname = excel.tableName + ".txt";
-        string md5 = ExcelParserFileHelper.GetMD5HashFromFile(xlsxPath);
+        string md5 = ExcelParserFileHelper.GetMD5HashFromFile(exlPath);
         if(md5 == null)
         {
             return false;
         }
-        string contents = "--md5:" + md5 + "\n";
-        contents += excel.ToString();
-        FileUtil.WriteTextFile(contents, Path.Combine(GlobalCfg.SourcePath, GlobalCfg.LocalTmpTablePath, fname));
-        return false;
+        string md5str = "--md5:" + md5 + "\n";
+        #region 生成服务器配置
+        string serverContents = md5str + exl.ToString(true);
+        FileUtil.WriteTextFile(serverContents, GlobalCfg.GetLocalServerLuaPath(exl.tableName));
+        #endregion
+        #region 生成客户端配置
+        if (!exl.isServerTable)
+        {
+            string clientContents = md5str + exl.ToString(false);
+            FileUtil.WriteTextFile(clientContents, GlobalCfg.GetLocalClientLuaPath(exlPath));
+        }
+        #endregion
+        return true;
     }
 
     //版本库中最新的表格若未生成配置则生成临时配置
@@ -117,18 +125,18 @@ class ExcelParser
         string tarPath = ExcelParserFileHelper.GetTargetLuaPath(path, true);
         string tempPath = ExcelParserFileHelper.GetTempLuaPath(path, true);
 
-        //#region 生成一份服务器的配置
-        //if (!ExcelParserFileHelper.IsSameFileMD5(tarPath, excelmd5))
-        //{
-        //    Excel excel = Excel.Parse(latestExlPath, true);
-        //    if (excel != null && excel.success)
-        //        GenServerVersion(excel, tempPath, excelmd5);
-        //}
-        //#endregion
+        #region 生成一份服务器的配置
+        if (!ExcelParserFileHelper.IsSameFileMD5(tarPath, excelmd5))
+        {
+            Excel excel = Excel.Parse(path);
+            if (excel != null && excel.success)
+                GenServerVersion(excel, tempPath, excelmd5);
+        }
+        #endregion
         #region 客户端的Excel生成一份客户端的配置
         if (path.IndexOf("serverexcel") < 0)
         {
-            //tarPath = ExcelParserFileHelper.GetTargetLuaPath(path, false);
+            tarPath = ExcelParserFileHelper.GetTargetLuaPath(path, false);
             //if (aimPath == null)
             //{
             //    tempPath = ExcelParserFileHelper.GetTempLuaPath(path, false);
@@ -144,9 +152,9 @@ class ExcelParser
             //    if (excel != null && excel.success)
             //        GenClientVersion(excel, tempPath, excelmd5);
             //}
-            Excel excel = Excel.Parse(path, false);
-            if (excel != null && excel.success)
-                GenClientVersion(excel, tempPath, excelmd5);
+            //Excel excel = Excel.Parse(path, false);
+            //if (excel != null && excel.success)
+            //    GenClientVersion(excel, tempPath, excelmd5);
             if (NeedAutoImport(path))
                 _NeedImportClient.Add(Path.GetFileNameWithoutExtension(tempPath));
         }

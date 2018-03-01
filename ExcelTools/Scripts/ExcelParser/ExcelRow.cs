@@ -20,6 +20,9 @@ public class ExcelRow
         cells.Add(c);
     }
 
+    /// <summary>
+    /// 返回完整的内容
+    /// </summary>
     public override string ToString()
     {
         StringBuilder sb = new StringBuilder();
@@ -33,7 +36,37 @@ public class ExcelRow
                     return null;
                 sb.AppendFormat("[{0}] = {{", id);
             }
-            if (parent.isServerTable || !cells[i].propertyInfo.isServerProperty)
+            str = cells[i].ToString();
+            if (str != null)
+            {
+                if (i != cells.Count - 1)
+                    sb.AppendFormat("{0}, ", str);
+                else
+                    sb.Append(str);
+            }
+            if (i == cells.Count - 1)
+                sb.Append("}");
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 返回客户端版本的内容
+    /// </summary>
+    public string ToStringClient()
+    {
+        StringBuilder sb = new StringBuilder();
+        string str;
+        for (int i = 0; i < cells.Count; i++)
+        {
+            if (i == 0)
+            {
+                string id = cells[i].GetValue();
+                if (string.IsNullOrWhiteSpace(id))
+                    return null;
+                sb.AppendFormat("[{0}] = {{", id);
+            }
+            if (!cells[i].propertyInfo.isServerProperty)
             {
                 str = cells[i].ToString();
                 if (str != null)

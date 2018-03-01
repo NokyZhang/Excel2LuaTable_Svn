@@ -24,9 +24,6 @@ namespace ExcelTools
         private const string STATE_REVERT = "Revert";
         private const string STATE_EDIT = "编辑";
         private const string STATE_FINISH_EDIT = "提交";
-        //生成按钮状态
-        private const string STATE_GEN = "生成至";
-        private const string STATE_CANCEL = "取消生成";
 
         private string _localRev;
         private string _serverRev;
@@ -244,7 +241,7 @@ namespace ExcelTools
                 {
                     _ExcelFiles[i].IsSame = statusDic[_ExcelFiles[i].Name].isSame;
                     _ExcelFiles[i].Paths = statusDic[_ExcelFiles[i].Name].paths;
-                    _ExcelFiles[i].IsEditing = statusDic[_ExcelFiles[i].Name].isLock;
+                    //_ExcelFiles[i].IsEditing = statusDic[_ExcelFiles[i].Name].isLock;
                 }
                 else
                 {
@@ -280,14 +277,14 @@ namespace ExcelTools
                 case STATE_UPDATE:
                     SVNHelper.Update(_Folders[0], _Folders[1]);
                     GlobalCfg.Instance.ClearAll();
-                    FileListView_SelectionChange(null, null);
+                    FileListView_SelectionChange(excelListView, null);
                     GetRevision();
                     break;
                 case STATE_REVERT:
                     SVNHelper.RevertAll(_excelItemChoosed.Paths);
                     CheckStateBtn_Click(null, null);
                     GlobalCfg.Instance.ClearCurrent();
-                    FileListView_SelectionChange(null, null);
+                    FileListView_SelectionChange(excelListView, null);
                     break;
                 case STATE_EDIT:
                     //请求进入编辑状态
@@ -307,13 +304,14 @@ namespace ExcelTools
                     break;
                 case STATE_FINISH_EDIT:
                     System.Windows.Forms.MessageBoxButtons buttons = System.Windows.Forms.MessageBoxButtons.OKCancel;
-                    System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show("是否放弃提交修改？", "确认", buttons);
+                    System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show("是否提交对于" + _excelItemChoosed.Name + "的修改？", "确认", buttons);
                     if (dr == System.Windows.Forms.DialogResult.OK)
                     {
                         for (int i = 0; i < GlobalCfg.BranchCount; i++)
                         {
                             GlobalCfg.Instance.ExcuteModified(i);
                         }
+                        FileListView_SelectionChange(null, null);
                         SVNHelper.ReleaseExcelRelative(_excelItemChoosed.FilePath);
                         _excelItemChoosed.IsEditing = false;
                         JudgeMultiFuncBtnState();
@@ -337,29 +335,6 @@ namespace ExcelTools
                 JudgeMultiFuncBtnState();
             }
         }
-
-        private void ResetGenBtnState()
-        {
-            List<string> rowStatus = _IDItemSelected == null? null:GlobalCfg.Instance.GetRowAllStatus(_IDItemSelected.ID);
-            for (int i = 0; i < GenBtns.Count; i++)
-            {
-                if (_IDItemSelected != null && _IDItemSelected.IsApplys[i])
-                {
-                    GenBtns[i].Content = STATE_CANCEL;
-                }
-                else
-                {
-                    GenBtns[i].Content = STATE_GEN;
-                }
-
-                GenBtns[i].IsEnabled = _excelItemChoosed.IsEditing;
-                if (rowStatus == null || (rowStatus[i] == "" && (GenBtns[i].Content.ToString() == STATE_GEN)))
-                {
-                    GenBtns[i].IsEnabled = false;
-                }
-            }
-        }
-
 
         private void GetRevision()
         {
@@ -421,6 +396,9 @@ namespace ExcelTools
         }
 
         static List<string> branchs = new List<string>{ "genTableBtn_Trunk", "genTableBtn_Studio", "genTableBtn_TF", "genTableBtn_Release" };
+        private const string GENBTN_STATE_GEN = "生成至";
+        private const string GENBTN_STATE_CANCEL = "取消生成";
+
         private void GenTableBtn_Click(object sender, RoutedEventArgs e)
         {
             Button genBtn = sender as Button;
@@ -429,19 +407,45 @@ namespace ExcelTools
             int idx = branchs.IndexOf(genBtn.Name);
             if (idx > -1 && _IDItemSelected != null)
             {
-                switch (genBtn.Content) {
-                    case STATE_GEN:
+                switch (genBtn.DataContext) {
+                    case GENBTN_STATE_GEN:
                         GlobalCfg.Instance.ApplyRow(idx, _IDItemSelected);
                         _IDItemSelected.ReverseIsApply(idx);
                         break;
-                    case STATE_CANCEL:
+                    case GENBTN_STATE_CANCEL:
                         GlobalCfg.Instance.CancelRow(idx, _IDItemSelected);
                         _IDItemSelected.ReverseIsApply(idx);
+                        break;
+                    default:
                         break;
                 }
             }
             //刷新修改
             IDListView_SelectChange(idListView, null);
+        }
+
+        private void ResetGenBtnState()
+        {
+            List<string> rowStatus = _IDItemSelected == null ? null : GlobalCfg.Instance.GetRowAllStatus(_IDItemSelected.ID);
+            for (int i = 0; i < GenBtns.Count; i++)
+            {
+                if (_IDItemSelected != null && _IDItemSelected.IsApplys[i])
+                {
+                    GenBtns[i].Content = GENBTN_STATE_CANCEL + branchs[i].Substring(branchs[0].IndexOf("_")+1);
+                    GenBtns[i].DataContext = GENBTN_STATE_CANCEL;
+                }
+                else
+                {
+                    GenBtns[i].Content = GENBTN_STATE_GEN + branchs[i].Substring(branchs[0].IndexOf("_") + 1);
+                    GenBtns[i].DataContext = GENBTN_STATE_GEN;
+                }
+
+                GenBtns[i].IsEnabled = _excelItemChoosed.IsEditing;
+                if (rowStatus == null || (rowStatus[i] == "" && !_IDItemSelected.IsApplys[i]))
+                {
+                    GenBtns[i].IsEnabled = false;
+                }
+            }
         }
 
         #region 过滤操作（搜索，筛选）
@@ -508,6 +512,7 @@ namespace ExcelTools
                 case CHECKBOX_EDITING_NAME:
                     IsCheckEditing = true;
                     FilterItems(excelListView);
+                    JudgeMultiFuncBtnState();
                     break;
                 case CHECKBOX_CHANGED_NAME:
                     IsCheckChanged = true;
@@ -526,6 +531,7 @@ namespace ExcelTools
                 case CHECKBOX_EDITING_NAME:
                     IsCheckEditing = false;
                     FilterItems(excelListView);
+                    JudgeMultiFuncBtnState();
                     break;
                 case CHECKBOX_CHANGED_NAME:
                     IsCheckChanged = false;

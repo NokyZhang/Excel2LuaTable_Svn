@@ -66,9 +66,9 @@ namespace Lua
             return type;
         }
 
-        public static void optimal(string path, string outpath)
+        public static void optimal(string path, string outpath, string sourceExlPath)
         {
-            table table = lparser.parse(path);
+            table table = lparser.parse(path, sourceExlPath);
             Setting ts = get_table_setting(table);
             string ret = string.Empty;
             switch(ts.type)

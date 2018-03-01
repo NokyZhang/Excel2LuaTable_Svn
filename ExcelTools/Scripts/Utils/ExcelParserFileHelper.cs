@@ -14,8 +14,8 @@ public class ExcelParserFileHelper
     static string _ExcelExt = ".xlsx";
     static string _ClientExt = _TextExt;
     static string _ServerExt = ".lua";
-    static string temp_server_table_path = "temp/server";
-    static string temp_client_table_path = "temp/client/Config";
+    static string temp_server_table_path = "../tmp/server";
+    static string temp_client_table_path = "../tmp/client/Config";
     static string target_server_table_path = "../Lua/Table";
     static string target_client_table_path = "../../client-refactory/Develop/Assets/Resources/Script/Config";
     static string target_client_other_path = "../../client-refactory/Develop/Assets/Resources/Script/MConfig";
@@ -154,5 +154,15 @@ public class ExcelParserFileHelper
         else
             tempPath = FileUtil.PathCombine(GlobalCfg.SourcePath, temp_client_table_path, fname);
         return tempPath;
+    }
+
+    public static bool IsServer(string path)
+    {
+        if (path.IndexOf("serverexcel") > -1)
+        {
+            return true;
+        }
+        else
+            return false;
     }
 }
