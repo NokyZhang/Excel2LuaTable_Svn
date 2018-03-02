@@ -204,7 +204,7 @@ namespace ExcelTools
                     IsNeedGen = GlobalCfg.Instance.GetIsNeedGen(fullConfig.key, ename),
                     PropertyName = cname + "（" + ename + "）",
                     EnName = ename,
-                    Context = configs[0] != null && configs[0].propertiesDic.ContainsKey(ename) ? configs[0].propertiesDic[ename].value : null,
+                    LocalContent = configs[0] != null && configs[0].propertiesDic.ContainsKey(ename) ? configs[0].propertiesDic[ename].value : null,
                     Trunk = configs[1] != null && configs[1].propertiesDic.ContainsKey(ename) ? configs[1].propertiesDic[ename].value : null,
                     Studio = configs[2] != null && configs[2].propertiesDic.ContainsKey(ename) ? configs[2].propertiesDic[ename].value : null,
                     TF = configs[3] != null && configs[3].propertiesDic.ContainsKey(ename) ? configs[3].propertiesDic[ename].value : null,
@@ -423,7 +423,11 @@ namespace ExcelTools
 
         private void DataGridCell_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
+            if (!_excelItemChoosed.IsEditing)
+                return;
             DataGridCell cell = sender as DataGridCell;
+            DataGridRow row = WPFHelper.GetParentObject<DataGridRow>(cell, null);
+            PropertyListItem itemSource = row.Item as PropertyListItem;
             string branchName;
             for (int i = 0; i < GlobalCfg.BranchCount; i++)
             {
@@ -431,7 +435,9 @@ namespace ExcelTools
                 if ((string)(cell.Column.Header) == branchName)
                 {
                     TextBlock tb = cell.Content as TextBlock;
-                    Console.WriteLine(tb.Text);
+                    PropertyEditWindow propertyEditWindow = new PropertyEditWindow(itemSource.PropertyName, itemSource.EnName, tb.Text, _IDItemSelected.ID, i);
+                    propertyEditWindow.ShowDialog();
+                    break;
                 }
             }
         }

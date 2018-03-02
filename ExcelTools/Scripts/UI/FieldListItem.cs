@@ -1,22 +1,62 @@
 ﻿
+using System.ComponentModel;
+
 namespace ExcelTools.Scripts.UI
 {
-    class PropertyListItem
+    class PropertyListItem : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public bool IsNeedGen { get; set; }
 
         public string PropertyName { get; set; }
 
         public string EnName { get; set; }
 
-        public string Context { get; set; }
+        public string LocalContent { get; set; }
 
-        public string Trunk { get; set; }
+        private string _Trunk;
+        public string Trunk
+        {
+            get { return _Trunk; }
+            set
+            {
+                _Trunk = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Trunk"));
+            }
+        }
 
-        public string Studio { get; set; }
+        private string _Studio;
+        public string Studio
+        {
+            get { return _Studio; }
+            set
+            {
+                _Studio = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Studio"));
+            }
+        }
 
-        public string TF { get; set; }
+        private string _TF;
+        public string TF
+        {
+            get { return _TF; }
+            set
+            {
+                _TF = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("TF"));
+            }
+        }
 
-        public string Release { get; set; }
+        private string _Release;
+        public string Release
+        {
+            get { return _Release; }
+            set
+            {
+                _Release = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Release"));
+            }
+        }
     }
 }

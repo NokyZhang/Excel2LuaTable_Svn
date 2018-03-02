@@ -346,6 +346,11 @@ namespace ExcelTools.Scripts
             return rows;
         }
 
+        public property GetProperty(string cfgId, string propertyName, int branchIndex)
+        {
+            return currentLuaTableData.tables[branchIndex + 1].configsDic[cfgId].propertiesDic[propertyName];
+        }
+
         public bool GetIsNeedGen(string cfgId, string propertyName)
         {
             bool isNeedGen = true;
