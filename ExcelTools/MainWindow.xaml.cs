@@ -145,15 +145,14 @@ namespace ExcelTools
             }
             else
             {
-                JudgeMultiFuncBtnState();
                 propertyDataGrid.ItemsSource = null;
                 idListView.ItemsSource = GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath);
                 GlobalCfg.Instance.ResetPreviousIsNeedGen();
                 checkBox_changed.IsEnabled = true;
                 checkBox_changed.IsChecked = false;
-                ResetGenBtnState();
             }
-            RefreshCheckBoxColumn();
+            JudgeMultiFuncBtnState();
+            EditingModeRender();
             if (listView != null && idListView.ItemsSource == null)
             {
                 listView.SelectedItem = null;
@@ -213,7 +212,7 @@ namespace ExcelTools
                 });
             }
             propertyDataGrid.ItemsSource = fieldList;
-            ResetGenBtnState();
+            RefreshGenBtnState();
 
             //刷新单元格颜色
             for (int j = 0; j < GlobalCfg.BranchCount; j++) {
@@ -286,14 +285,14 @@ namespace ExcelTools
                 case STATE_UPDATE:
                     SVNHelper.Update(_Folders[0], _Folders[1]);
                     GlobalCfg.Instance.ClearAll();
-                    FileListView_SelectionChange(excelListView, null);
+                    FileListView_SelectionChange(null, null);
                     GetRevision();
                     break;
                 case STATE_REVERT:
                     SVNHelper.RevertAll(_excelItemChoosed.Paths);
                     CheckStateBtn_Click(null, null);
                     GlobalCfg.Instance.ClearCurrent();
-                    FileListView_SelectionChange(excelListView, null);
+                    FileListView_SelectionChange(null, null);
                     break;
                 case STATE_EDIT:
                     //请求进入编辑状态
@@ -306,11 +305,7 @@ namespace ExcelTools
                         _excelItemChoosed.IsEditing = false;
                     }
                     JudgeMultiFuncBtnState();
-                    RefreshCheckBoxColumn();
-                    if (_IDItemSelected != null)
-                    {
-                        ResetGenBtnState();
-                    }
+                    EditingModeRender();
                     break;
                 case STATE_FINISH_EDIT:
                     System.Windows.Forms.MessageBoxButtons buttons = System.Windows.Forms.MessageBoxButtons.OKCancel;
@@ -321,27 +316,13 @@ namespace ExcelTools
                         {
                             GlobalCfg.Instance.ExcuteModified(i);
                         }
-                        FileListView_SelectionChange(null, null);
                         SVNHelper.ReleaseExcelRelative(_excelItemChoosed.FilePath);
                         _excelItemChoosed.IsEditing = false;
-                        RefreshCheckBoxColumn();
-                        JudgeMultiFuncBtnState();
+                        FileListView_SelectionChange(null, null);
                     }
                     break;
                 default:
                     break;
-            }
-        }
-
-        private void RefreshCheckBoxColumn()
-        {
-            if (_excelItemChoosed == null || _excelItemChoosed.IsEditing)
-            {
-                checkBoxColumn.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                checkBoxColumn.Visibility = Visibility.Hidden;
             }
         }
 
@@ -352,10 +333,9 @@ namespace ExcelTools
             if (dr == System.Windows.Forms.DialogResult.OK)
             {
                 GlobalCfg.Instance.ClearCurrent();
-                FileListView_SelectionChange(null, null);
                 SVNHelper.ReleaseExcelRelative(_excelItemChoosed.FilePath);
                 _excelItemChoosed.IsEditing = false;
-                JudgeMultiFuncBtnState();
+                FileListView_SelectionChange(null, null);
             }
         }
 
@@ -392,20 +372,6 @@ namespace ExcelTools
             else
             {
                 multiFunctionBtn.Visibility = Visibility.Hidden;
-            }
-
-            RefreshCancelBtn();
-        }
-
-        private void RefreshCancelBtn()
-        {
-            if(_excelItemChoosed != null && _excelItemChoosed.IsEditing)
-            {
-                cancelBtn.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                cancelBtn.Visibility = Visibility.Hidden;
             }
         }
 
@@ -447,7 +413,37 @@ namespace ExcelTools
             IDListView_SelectChange(idListView, null);
         }
 
-        private void ResetGenBtnState()
+        private void PropertyCheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            CheckBox checkBox = sender as CheckBox;
+            DataGridRow parentRow = WPFHelper.GetParentObject<DataGridRow>(checkBox, null);
+            PropertyListItem sourceItem = parentRow.Item as PropertyListItem;
+            GlobalCfg.Instance.SetCurrentIsNeedGen(_IDItemSelected.ID, sourceItem.EnName, checkBox.IsChecked.Value);
+        }
+
+        private void DataGridCell_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            DataGridCell cell = sender as DataGridCell;
+            string branchName;
+            for (int i = 0; i < GlobalCfg.BranchCount; i++)
+            {
+                branchName = Enum.GetName(typeof(Branch), i);
+                if ((string)(cell.Column.Header) == branchName)
+                {
+                    TextBlock tb = cell.Content as TextBlock;
+                    Console.WriteLine(tb.Text);
+                }
+            }
+        }
+
+        private void EditingModeRender()
+        {
+            RefreshCancelBtn();
+            RefreshCheckBoxColumn();
+            RefreshGenBtnState();
+        }
+
+        private void RefreshGenBtnState()
         {
             List<string> rowStatus = _IDItemSelected == null ? null : GlobalCfg.Instance.GetRowAllStatus(_IDItemSelected.ID);
             for (int i = 0; i < GenBtns.Count; i++)
@@ -468,6 +464,30 @@ namespace ExcelTools
                 {
                     GenBtns[i].IsEnabled = false;
                 }
+            }
+        }
+
+        private void RefreshCancelBtn()
+        {
+            if (_excelItemChoosed != null && _excelItemChoosed.IsEditing)
+            {
+                cancelBtn.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                cancelBtn.Visibility = Visibility.Hidden;
+            }
+        }
+
+        private void RefreshCheckBoxColumn()
+        {
+            if (_excelItemChoosed == null || _excelItemChoosed.IsEditing)
+            {
+                checkBoxColumn.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                checkBoxColumn.Visibility = Visibility.Hidden;
             }
         }
 
@@ -673,30 +693,5 @@ namespace ExcelTools
         }
 
         #endregion
-
-        #region 选择要生成的字段
-        private void PropertyCheckBox_Click(object sender, RoutedEventArgs e)
-        {
-            CheckBox checkBox = sender as CheckBox;
-            DataGridRow parentRow = WPFHelper.GetParentObject<DataGridRow>(checkBox, null);
-            PropertyListItem sourceItem = parentRow.Item as PropertyListItem;
-            GlobalCfg.Instance.SetCurrentIsNeedGen(_IDItemSelected.ID, sourceItem.EnName, checkBox.IsChecked.Value);
-        }
-        #endregion
-
-        private void DataGridCell_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            DataGridCell cell = sender as DataGridCell;
-            string branchName;
-            for(int i = 0; i < GlobalCfg.BranchCount; i++)
-            {
-                branchName = Enum.GetName(typeof(Branch), i);
-                if ((string)(cell.Column.Header) == branchName)
-                {
-                    TextBlock tb = cell.Content as TextBlock;
-                    Console.WriteLine(tb.Text);
-                }
-            }
-        }
     }
 }
