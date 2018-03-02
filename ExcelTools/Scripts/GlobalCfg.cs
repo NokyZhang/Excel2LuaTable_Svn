@@ -126,36 +126,36 @@ namespace ExcelTools.Scripts
                 {
                     tableDiffs = new List<tablediff>()
                 };
-            }
-            //对比md5，看是否需要重新生成LocalLuaTable llt
-            string tablename = string.Format("Table_{0}", Path.GetFileNameWithoutExtension(excelpath));
-            string slltpath = GetLocalServerLuaPath(tablename);
-            string clltpath = GetLocalClientLuaPath(excelpath);
-            string md5 = ExcelParserFileHelper.GetMD5HashFromFile(excelpath);
-            bool isServer = ExcelParserFileHelper.IsServer(excelpath);
-            if(md5 == null)
-            {
-                return null;
-            }
-            LuaTableData ltd = _lTableDataDic[excelpath];
-            if (!File.Exists(slltpath) || md5 != ReadTableMD5(slltpath) 
-                || (!isServer && (!File.Exists(clltpath) || md5 != ReadTableMD5(clltpath))))
-            {
-                if (!ExcelParser.ReGenLuaTable(excelpath))
+                //对比md5，看是否需要重新生成LocalLuaTable llt
+                string tablename = string.Format("Table_{0}", Path.GetFileNameWithoutExtension(excelpath));
+                string slltpath = GetLocalServerLuaPath(tablename);
+                string clltpath = GetLocalClientLuaPath(excelpath);
+                string md5 = ExcelParserFileHelper.GetMD5HashFromFile(excelpath);
+                bool isServer = ExcelParserFileHelper.IsServer(excelpath);
+                if (md5 == null)
                 {
                     return null;
                 }
+                LuaTableData ltd = _lTableDataDic[excelpath];
+                if (!File.Exists(slltpath) || md5 != ReadTableMD5(slltpath)
+                    || (!isServer && (!File.Exists(clltpath) || md5 != ReadTableMD5(clltpath))))
+                {
+                    if (!ExcelParser.ReGenLuaTable(excelpath))
+                    {
+                        return null;
+                    }
+                }
+                ltd.tables[0] = parse(slltpath, excelpath);
+                for (int i = 1; i < BranchCount + 1; i++)
+                {
+                    string serverLuaPath = GetBranchServerLuaPath(tablename, i - 1);
+                    if (File.Exists(serverLuaPath))
+                        ltd.tables[i] = parse(serverLuaPath, excelpath);
+                    else
+                        ltd.tables[i] = null;
+                }
             }
-            ltd.tables[0] = parse(slltpath, excelpath);
-            for (int i = 1; i < BranchCount + 1; i++)
-            {
-                string serverLuaPath = GetBranchServerLuaPath(tablename, i-1);
-                if (File.Exists(serverLuaPath))
-                    ltd.tables[i] = parse(serverLuaPath, excelpath);
-                else
-                    ltd.tables[i] = null;
-            }
-            return ltd;
+            return _lTableDataDic[excelpath];
         }
 
         #region UI数据相关
