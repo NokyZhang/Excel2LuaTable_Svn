@@ -19,13 +19,27 @@ namespace ExcelTools.Scripts
 
         public Dictionary<string, Dictionary<int, string>> applyedRows;
 
-        public void ResetIsNeedGen(string cfgId, string propertyName, bool isNeedGen)
+        public void SetIsNeedGen(string cfgId, string propertyName, bool isNeedGen)
         {
             for(int i = 0; i < tables.Length; i++)
             {
                 if (tables[i].configsDic.ContainsKey(cfgId))
                 {
-                    tables[i].configsDic[cfgId].ResetIsNeedGen(propertyName, isNeedGen);
+                    tables[i].configsDic[cfgId].SetIsNeedGen(propertyName, isNeedGen);
+                }
+            }
+        }
+
+        public void ResetIsNeedGen()
+        {
+            for(int i = 0; i < tables.Length; i++)
+            {
+                for(int j = 0; j < tables[i].configs.Count; j++)
+                {
+                    for (int n = 0; n < tables[i].configs[j].properties.Count; n++)
+                    {
+                        tables[i].configs[j].IsNeedGenDic[tables[i].configs[j].properties[n].name] = true;
+                    }
                 }
             }
         }
@@ -158,8 +172,8 @@ namespace ExcelTools.Scripts
             return _lTableDataDic[excelpath];
         }
 
-        #region UI数据相关
-        LuaTableData currentLuaTableData;
+        private LuaTableData previousLuaTableData;
+        private LuaTableData currentLuaTableData;
         string currentExcelpath;
 
         public List<string> GetRowAllStatus(string rowid)
@@ -225,6 +239,7 @@ namespace ExcelTools.Scripts
 
         public  ObservableCollection<IDListItem> GetIDList(string excelpath)
         {
+            previousLuaTableData = currentLuaTableData;
             currentLuaTableData = InitLuaTableData(excelpath);
             if(currentLuaTableData == null)
             {
@@ -304,8 +319,6 @@ namespace ExcelTools.Scripts
             applyedRows[item.ID][branchIdx] = "";
         }
 
-        #endregion
-
         //根据目前选择的操作，修改配置文件
         public void ExcuteModified(int branchIdx)
         {
@@ -350,7 +363,15 @@ namespace ExcelTools.Scripts
 
         public void SetCurrentIsNeedGen(string cfgId, string propertyName, bool isNeedGen)
         {
-            currentLuaTableData.ResetIsNeedGen(cfgId, propertyName, isNeedGen);
+            currentLuaTableData.SetIsNeedGen(cfgId, propertyName, isNeedGen);
+        }
+
+        public void ResetPreviousIsNeedGen()
+        {
+            if(previousLuaTableData != null)
+            {
+                previousLuaTableData.ResetIsNeedGen();
+            }
         }
 
         public static string GetBranchServerLuaPath(string tableName, int branchId)

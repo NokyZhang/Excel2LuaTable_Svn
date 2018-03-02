@@ -278,7 +278,7 @@ namespace Lua
                 }
             }
 
-            public void ResetIsNeedGen(string propertyEname, bool isNeedGen)
+            public void SetIsNeedGen(string propertyEname, bool isNeedGen)
             {
                 if (_IsNeedGenDic.ContainsKey(propertyEname))
                 {

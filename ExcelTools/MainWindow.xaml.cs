@@ -148,6 +148,7 @@ namespace ExcelTools
                 JudgeMultiFuncBtnState();
                 propertyDataGrid.ItemsSource = null;
                 idListView.ItemsSource = GlobalCfg.Instance.GetIDList(_excelItemChoosed.FilePath);
+                GlobalCfg.Instance.ResetPreviousIsNeedGen();
                 checkBox_changed.IsEnabled = true;
                 checkBox_changed.IsChecked = false;
                 ResetGenBtnState();
