@@ -3,6 +3,8 @@ namespace ExcelTools.Scripts.UI
 {
     class PropertyListItem
     {
+        public bool IsNeedGen { get; set; }
+
         public string PropertyName { get; set; }
 
         public string EnName { get; set; }

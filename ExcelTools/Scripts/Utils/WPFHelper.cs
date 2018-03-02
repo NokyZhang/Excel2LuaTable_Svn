@@ -36,6 +36,23 @@ namespace ExcelTools.Scripts.Utils
             return childList;
         }
 
+        public static T GetParentObject<T>(DependencyObject obj, string name) where T : FrameworkElement
+        {
+            DependencyObject parent = VisualTreeHelper.GetParent(obj);
+
+            while (parent != null)
+            {
+                if (parent is T && (((T)parent).Name == name | string.IsNullOrEmpty(name)))
+                {
+                    return (T)parent;
+                }
+
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+
+            return null;
+        }
+
         /// <summary> 
         /// 获得DataGrid的指定单元格
         /// </summary> 

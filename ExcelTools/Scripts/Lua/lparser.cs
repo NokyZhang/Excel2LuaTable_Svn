@@ -106,8 +106,18 @@ namespace Lua
                 {
                     oldCfg = configsDic[key];
                     oldIndex = configs.IndexOf(configsDic[key]);
-                    configs.Remove(configsDic[key]);
-                    configsDic.Remove(key);
+                    config realCfg = config.GenConfigByIsNeedGenDic(configsDic[key], null);
+                    if (realCfg == null)
+                    {
+                        configs.Remove(configsDic[key]);
+                        configsDic.Remove(key);
+                    }
+                    else
+                    {
+                        int index = configs.IndexOf(configsDic[key]);
+                        configs[index] = realCfg;
+                        configsDic[key] = realCfg;
+                    }
                 }
             }
 
@@ -115,8 +125,9 @@ namespace Lua
             {
                 if (!configsDic.ContainsKey(cfg.key))
                 {
-                    configsDic[cfg.key] = cfg;
-                    configs.Add(cfg);
+                    config realCfg = config.GenConfigByIsNeedGenDic(null, cfg);
+                    configsDic[cfg.key] = realCfg;
+                    configs.Add(realCfg);
                 }
             }
 
@@ -126,8 +137,9 @@ namespace Lua
                 {
                     oldCfg = configsDic[cfg.key];
                     int index = configs.IndexOf(configsDic[cfg.key]);
-                    configs[index] = cfg;
-                    configsDic[cfg.key] = cfg;
+                    config realCfg = config.GenConfigByIsNeedGenDic(configsDic[cfg.key], cfg);
+                    configs[index] = realCfg;
+                    configsDic[cfg.key] = realCfg;
                 }
             }
             #endregion
@@ -166,10 +178,32 @@ namespace Lua
             public string key;
             public List<property> properties = new List<property>();
             public Dictionary<string, property> propertiesDic = new Dictionary<string, property>();
+            private Dictionary<string, bool> _IsNeedGenDic = new Dictionary<string, bool>();
+
+            public Dictionary<string, bool> IsNeedGenDic
+            {
+                get
+                {
+                    return _IsNeedGenDic;
+                }
+            }
 
             public config(string k)
             {
                 key = k;
+            }
+
+            public config(config config)
+            {
+                key = config.key;
+                property property;
+                for(int i = 0; i < config.properties.Count; i++)
+                {
+                    property = new property(config.properties[i]);
+                    properties.Add(property);
+                    propertiesDic.Add(property.name, property);
+                    _IsNeedGenDic.Add(property.name, config.IsNeedGenDic[property.name]);
+                }
             }
 
             public string GenString(bool out4Server = true)
@@ -220,6 +254,7 @@ namespace Lua
                 {
                     properties.Remove(propertiesDic[p.name]);
                     propertiesDic.Remove(p.name);
+                    IsNeedGenDic.Remove(p.name);
                 }
             }
 
@@ -229,6 +264,7 @@ namespace Lua
                 {
                     propertiesDic[p.name] = p;
                     properties.Add(p);
+                    IsNeedGenDic.Add(p.name, true);
                 }
             }
 
@@ -241,6 +277,51 @@ namespace Lua
                     propertiesDic[p.name] = p;
                 }
             }
+
+            public void ResetIsNeedGen(string propertyEname, bool isNeedGen)
+            {
+                if (_IsNeedGenDic.ContainsKey(propertyEname))
+                {
+                    _IsNeedGenDic[propertyEname] = isNeedGen;
+                }
+            }
+
+            public static config GenConfigByIsNeedGenDic(config baseCfg, config newCfg)
+            {
+                config realCfg = new config(newCfg);
+                config originCfg = new config(baseCfg);
+                if (realCfg == null)
+                {
+                    if (originCfg != null) {
+                        for (int i = 0; i < originCfg.properties.Count; i++)
+                        {
+                            if (originCfg.IsNeedGenDic[originCfg.properties[i].name])
+                            {
+                                originCfg.RemoveProperty(originCfg.properties[i]);
+                            }
+                        }
+                        realCfg = originCfg;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < realCfg.properties.Count; i++)
+                    {
+                        if (!realCfg.IsNeedGenDic[realCfg.properties[i].name])
+                        {
+                            if (originCfg != null && originCfg.propertiesDic.ContainsKey(realCfg.properties[i].name))
+                            {
+                                realCfg.ModifyProperty(originCfg.propertiesDic[realCfg.properties[i].name]);
+                            }
+                            else
+                            {
+                                realCfg.RemoveProperty(realCfg.properties[i]);
+                            }
+                        }
+                    }
+                }
+                return realCfg;
+            }
         }
 
         public class property
@@ -248,6 +329,15 @@ namespace Lua
             public string name;
             public string value;
             public bool isServer = false;
+
+            public property() { }
+
+            public property(property property)
+            {
+                name = property.name;
+                value = property.value;
+                isServer = property.isServer;
+            }
 
             public string GenString()
             {
@@ -289,6 +379,7 @@ namespace Lua
                 property p = read_property(sr, sourceExlPath);
                 config.properties.Add(p);
                 config.propertiesDic.Add(p.name, p);
+                config.IsNeedGenDic.Add(p.name, true);
             }
             return config;
         }

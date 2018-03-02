@@ -11,6 +11,7 @@ using ExcelTools.Scripts.UI;
 using Lua;
 using System.Windows.Media;
 using System.ComponentModel;
+using System.Windows.Input;
 
 namespace ExcelTools
 {
@@ -37,7 +38,7 @@ namespace ExcelTools
         }
 
         List<Button> GenBtns;
-        ObservableCollection<ExcelFileListItem> _ExcelFiles = new ObservableCollection<ExcelFileListItem>();
+        ObservableCollection<ExcelFileListItem> excelFiles = new ObservableCollection<ExcelFileListItem>();
         Dictionary<string, DifferController> _DiffDic = new Dictionary<string, DifferController>();
         const string _ConfigPath = "config.txt";
         List<string> _Folders = new List<string>(){
@@ -61,6 +62,10 @@ namespace ExcelTools
             GetRevision();
             CheckStateBtn_Click(null, null);
 
+            for(int i = 0; i < GlobalCfg.BranchCount; i++)
+            {
+                propertyDataGrid.Columns[i + 3].Header = Enum.GetName(typeof(Branch), i);
+            }
             GenBtns = new List<Button>()
             {
                 genTableBtn_Trunk,
@@ -84,11 +89,11 @@ namespace ExcelTools
         {
             _Folders[0] = GlobalCfg.SourcePath + _FolderServerExcel;
             _Folders[1] = GlobalCfg.SourcePath + _FolderSubConfigs;
-            _ExcelFiles.Clear();
+            excelFiles.Clear();
             List<string> files = FileUtil.CollectAllFolders(_Folders, _Ext);
             for (int i = 0; i < files.Count; i++)
             {
-                _ExcelFiles.Add(new ExcelFileListItem()
+                excelFiles.Add(new ExcelFileListItem()
                 {
                     Name = Path.GetFileNameWithoutExtension(files[i]),
                     IsSame = true,
@@ -98,7 +103,7 @@ namespace ExcelTools
                     FilePath = files[i]
                 });
             }
-            excelListView.ItemsSource = _ExcelFiles;
+            excelListView.ItemsSource = excelFiles;
             //CheckStateBtn_Click(null, null);
         }
 
@@ -195,6 +200,7 @@ namespace ExcelTools
                 cname = propertyList[j].cname;
                 fieldList.Add(new PropertyListItem()
                 {
+                    IsNeedGen = GlobalCfg.Instance.GetIsNeedGen(fullConfig.key, ename),
                     PropertyName = cname + "（" + ename + "）",
                     EnName = ename,
                     Context = configs[0] != null && configs[0].propertiesDic.ContainsKey(ename) ? configs[0].propertiesDic[ename].value : null,
@@ -215,17 +221,17 @@ namespace ExcelTools
                 }
                 for (int a = 0; a < fieldList.Count; a++) {
                     if (trd.modifiedcells != null && trd.modifiedcells.ContainsKey(fieldList[a].EnName)){
-                        DataGridCell dataGridCell = WPFHelper.GetCell(propertyDataGrid, a, j + 2);
+                        DataGridCell dataGridCell = WPFHelper.GetCell(propertyDataGrid, a, j + 3);
                         dataGridCell.Background = Brushes.LightBlue;
                     }
                     if (trd.modifiedcells != null && trd.addedcells.ContainsKey(fieldList[a].EnName))
                     {
-                        DataGridCell dataGridCell = WPFHelper.GetCell(propertyDataGrid, a, j + 2);
+                        DataGridCell dataGridCell = WPFHelper.GetCell(propertyDataGrid, a, j + 3);
                         dataGridCell.Background = Brushes.LightPink;
                     }
                     if (trd.modifiedcells != null && trd.deletedcells.ContainsKey(fieldList[a].EnName))
                     {
-                        DataGridCell dataGridCell = WPFHelper.GetCell(propertyDataGrid, a, j + 2);
+                        DataGridCell dataGridCell = WPFHelper.GetCell(propertyDataGrid, a, j + 3);
                         dataGridCell.Background = Brushes.LightBlue;
                     }
                 }
@@ -235,19 +241,19 @@ namespace ExcelTools
         private void CheckStateBtn_Click(object sender, RoutedEventArgs e)
         {
             Dictionary<string, SVNHelper.FileStatusStr> statusDic = SVNHelper.AllStatus();
-            for(int i = 0; i < _ExcelFiles.Count; i++)
+            for(int i = 0; i < excelFiles.Count; i++)
             {
-                if (statusDic.ContainsKey(_ExcelFiles[i].Name))
+                if (statusDic.ContainsKey(excelFiles[i].Name))
                 {
-                    _ExcelFiles[i].IsSame = statusDic[_ExcelFiles[i].Name].isSame;
-                    _ExcelFiles[i].Paths = statusDic[_ExcelFiles[i].Name].paths;
+                    excelFiles[i].IsSame = statusDic[excelFiles[i].Name].isSame;
+                    excelFiles[i].Paths = statusDic[excelFiles[i].Name].paths;
                     //_ExcelFiles[i].IsEditing = statusDic[_ExcelFiles[i].Name].isLock;
                 }
                 else
                 {
-                    _ExcelFiles[i].IsSame = true;
-                    _ExcelFiles[i].IsEditing = false;
-                    _ExcelFiles[i].Paths.Clear();
+                    excelFiles[i].IsSame = true;
+                    excelFiles[i].IsEditing = false;
+                    excelFiles[i].Paths.Clear();
                 }
             }
             JudgeMultiFuncBtnState();
@@ -547,7 +553,7 @@ namespace ExcelTools
             switch (list.Name)
             {
                 case "excelListView":
-                    ObservableCollection<ExcelFileListItem> excelRes = _ExcelFiles;
+                    ObservableCollection<ExcelFileListItem> excelRes = excelFiles;
                     if (IsCheckEditing) {
                         excelRes = GetFilteredCollection(excelRes, FILTER_BY_EDITING);
                     }
@@ -651,15 +657,29 @@ namespace ExcelTools
 
         #endregion
 
-        private void PropertyDataGrid_SelectionChanged(object sender, SelectedCellsChangedEventArgs args)
+        #region 选择要生成的字段
+        private void PropertyCheckBox_Click(object sender, RoutedEventArgs e)
         {
-            DataGrid propertyDataGrid = sender as DataGrid;
-            if (propertyDataGrid.SelectedCells.Count <= 0)
+            CheckBox checkBox = sender as CheckBox;
+            DataGridRow parentRow = WPFHelper.GetParentObject<DataGridRow>(checkBox, null);
+            PropertyListItem sourceItem = parentRow.Item as PropertyListItem;
+            GlobalCfg.Instance.SetCurrentIsNeedGen(_IDItemSelected.ID, sourceItem.EnName, checkBox.IsChecked.Value);
+        }
+        #endregion
+
+        private void DataGridCell_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            DataGridCell cell = sender as DataGridCell;
+            string branchName;
+            for(int i = 0; i < GlobalCfg.BranchCount; i++)
             {
-                return;
+                branchName = Enum.GetName(typeof(Branch), i);
+                if ((string)(cell.Column.Header) == branchName)
+                {
+                    TextBlock tb = cell.Content as TextBlock;
+                    Console.WriteLine(tb.Text);
+                }
             }
-            PropertyListItem row = propertyDataGrid.SelectedCells[0].Item as PropertyListItem;
-            FrameworkElement cell = propertyDataGrid.SelectedCells[0].Column.GetCellContent(row);
         }
     }
 }

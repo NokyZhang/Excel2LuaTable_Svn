@@ -95,16 +95,27 @@
                                         <Button Content="生成至Release" Click ="GenTableBtn_Click"  Name="genTableBtn_Release" Height="20" Width="100" IsEnabled="False" DataContext="Gen"/>
                                     </StackPanel>
 
-                                    <DataGrid x:Name="propertyDataGrid" DockPanel.Dock="Bottom" ItemsSource="{Binding}" AutoGenerateColumns="False" IsReadOnly="True" 
-                                              CanUserResizeColumns="True" CanUserReorderColumns="False" CanUserResizeRows="False" CanUserSortColumns="False"
-                                              SelectedCellsChanged="PropertyDataGrid_SelectionChanged">
+                                    <DataGrid x:Name="propertyDataGrid" DockPanel.Dock="Bottom" ItemsSource="{Binding}" AutoGenerateColumns="False"
+                                              CanUserResizeColumns="True" CanUserReorderColumns="False" CanUserResizeRows="False" CanUserSortColumns="False" CanUserAddRows="False" CanUserDeleteRows="False">
+                                        <DataGrid.CellStyle>
+                                            <Style  TargetType="DataGridCell">
+                                                <EventSetter Event="MouseDoubleClick" Handler="DataGridCell_MouseDoubleClick"/>
+                                            </Style>
+                                        </DataGrid.CellStyle>
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="字段名" Width="120" Binding="{Binding PropertyName}"/>
-                                            <DataGridTextColumn Header="本地内容" Width="165" Binding="{Binding Context}"/>
-                                            <DataGridTextColumn Header="Trunk" Width="100" Binding="{Binding Trunk}"/>
-                                            <DataGridTextColumn Header="Studio" Width="100" Binding="{Binding Studio}"/>
-                                            <DataGridTextColumn Header="TF" Width="100" Binding="{Binding TF}"/>
-                                            <DataGridTextColumn Header="Release" Width="100" Binding="{Binding Release}"/>
+                                            <DataGridTemplateColumn Width="*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox IsChecked="{Binding IsNeedGen}" Click="PropertyCheckBox_Click"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="字段名" Width="120" Binding="{Binding PropertyName}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="本地内容" Width="165" Binding="{Binding Context}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Width="100" Binding="{Binding Trunk}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Width="100" Binding="{Binding Studio}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Width="100" Binding="{Binding TF}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Width="100" Binding="{Binding Release}" IsReadOnly="True"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </DockPanel>

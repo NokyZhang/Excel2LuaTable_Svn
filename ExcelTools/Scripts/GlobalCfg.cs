@@ -18,10 +18,30 @@ namespace ExcelTools.Scripts
         public ObservableCollection<IDListItem> idList;
 
         public Dictionary<string, Dictionary<int, string>> applyedRows;
+
+        public void ResetIsNeedGen(string cfgId, string propertyName, bool isNeedGen)
+        {
+            for(int i = 0; i < tables.Length; i++)
+            {
+                if (tables[i].configsDic.ContainsKey(cfgId))
+                {
+                    tables[i].configsDic[cfgId].ResetIsNeedGen(propertyName, isNeedGen);
+                }
+            }
+        }
+    }
+
+     enum Branch
+    {
+        Trunk = 0,
+        Studio = 1,
+        TF = 2,
+        Release = 3,
     }
 
     class GlobalCfg
     {
+
         //表格的路径
         static public string SourcePath = null;
         //现处于管理中的分支
@@ -42,8 +62,6 @@ namespace ExcelTools.Scripts
         };
 
         static public int BranchCount { get { return BranchURLs.Count; } }
-
-        static public bool isServer = true;
 
         static public string _Local_Table_Ext = ".txt";
         private static GlobalCfg _instance;
@@ -313,6 +331,26 @@ namespace ExcelTools.Scripts
                     rows.Add(null);
             }
             return rows;
+        }
+
+        public bool GetIsNeedGen(string cfgId, string propertyName)
+        {
+            bool isNeedGen = true;
+            for (int i = 0; i < currentLuaTableData.tables.Length; i++)
+            {
+                if (currentLuaTableData.tables[i] != null
+                    && currentLuaTableData.tables[i].configsDic.ContainsKey(cfgId)
+                    && currentLuaTableData.tables[i].configsDic[cfgId].IsNeedGenDic.ContainsKey(propertyName))
+                {
+                    isNeedGen = currentLuaTableData.tables[i].configsDic[cfgId].IsNeedGenDic[propertyName];
+                }
+            }
+            return isNeedGen;
+        }
+
+        public void SetCurrentIsNeedGen(string cfgId, string propertyName, bool isNeedGen)
+        {
+            currentLuaTableData.ResetIsNeedGen(cfgId, propertyName, isNeedGen);
         }
 
         public static string GetBranchServerLuaPath(string tableName, int branchId)
