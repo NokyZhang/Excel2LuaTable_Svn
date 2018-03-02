@@ -153,7 +153,8 @@ namespace ExcelTools
                 checkBox_changed.IsChecked = false;
                 ResetGenBtnState();
             }
-            if(listView != null && idListView.ItemsSource == null)
+            RefreshCheckBoxColumn();
+            if (listView != null && idListView.ItemsSource == null)
             {
                 listView.SelectedItem = null;
             }
@@ -248,6 +249,7 @@ namespace ExcelTools
                 {
                     excelFiles[i].IsSame = statusDic[excelFiles[i].Name].isSame;
                     excelFiles[i].Paths = statusDic[excelFiles[i].Name].paths;
+                    //TODO:检测已经加锁的文件
                     //_ExcelFiles[i].IsEditing = statusDic[_ExcelFiles[i].Name].isLock;
                 }
                 else
@@ -304,7 +306,8 @@ namespace ExcelTools
                         _excelItemChoosed.IsEditing = false;
                     }
                     JudgeMultiFuncBtnState();
-                    if(_IDItemSelected != null)
+                    RefreshCheckBoxColumn();
+                    if (_IDItemSelected != null)
                     {
                         ResetGenBtnState();
                     }
@@ -321,11 +324,24 @@ namespace ExcelTools
                         FileListView_SelectionChange(null, null);
                         SVNHelper.ReleaseExcelRelative(_excelItemChoosed.FilePath);
                         _excelItemChoosed.IsEditing = false;
+                        RefreshCheckBoxColumn();
                         JudgeMultiFuncBtnState();
                     }
                     break;
                 default:
                     break;
+            }
+        }
+
+        private void RefreshCheckBoxColumn()
+        {
+            if (_excelItemChoosed == null || _excelItemChoosed.IsEditing)
+            {
+                checkBoxColumn.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                checkBoxColumn.Visibility = Visibility.Hidden;
             }
         }
 

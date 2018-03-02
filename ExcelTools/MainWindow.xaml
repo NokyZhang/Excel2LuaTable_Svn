@@ -103,7 +103,7 @@
                                             </Style>
                                         </DataGrid.CellStyle>
                                         <DataGrid.Columns>
-                                            <DataGridTemplateColumn Width="*">
+                                            <DataGridTemplateColumn x:Name="checkBoxColumn" Width="*" Visibility="Hidden">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <CheckBox IsChecked="{Binding IsNeedGen}" Click="PropertyCheckBox_Click"/>
