@@ -103,19 +103,19 @@
                                             </Style>
                                         </DataGrid.CellStyle>
                                         <DataGrid.Columns>
-                                            <DataGridTemplateColumn x:Name="checkBoxColumn" Width="*" Visibility="Hidden">
+                                            <DataGridTemplateColumn x:Name="checkBoxColumn" Width="10" Visibility="Hidden" CanUserResize="False">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <CheckBox IsChecked="{Binding IsNeedGen}" Click="PropertyCheckBox_Click"/>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTextColumn Header="字段名" Width="120" Binding="{Binding PropertyName}" IsReadOnly="True"/>
-                                            <DataGridTextColumn Header="本地内容" Width="165" Binding="{Binding LocalContent}" IsReadOnly="True"/>
-                                            <DataGridTextColumn Width="100" Binding="{Binding Trunk}" IsReadOnly="True"/>
-                                            <DataGridTextColumn Width="100" Binding="{Binding Studio}" IsReadOnly="True"/>
-                                            <DataGridTextColumn Width="100" Binding="{Binding TF}" IsReadOnly="True"/>
-                                            <DataGridTextColumn Width="100" Binding="{Binding Release}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="字段名" Width="*" MinWidth="50" Binding="{Binding PropertyName}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="本地内容" Width="*" MinWidth="50" Binding="{Binding LocalContent}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Width="*" MinWidth="50" Binding="{Binding Trunk}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Width="*" MinWidth="50" Binding="{Binding Studio}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Width="*" MinWidth="50" Binding="{Binding TF}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Width="*" MinWidth="50" Binding="{Binding Release}" IsReadOnly="True"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </DockPanel>

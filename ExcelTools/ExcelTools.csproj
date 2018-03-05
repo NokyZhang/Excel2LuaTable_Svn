@@ -91,6 +91,7 @@
     <Compile Include="Scripts\ExcelParser\Excel.cs" />
     <Compile Include="Scripts\ExcelParser\ZipFile.cs" />
     <Compile Include="Scripts\GlobalCfg.cs" />
+    <Compile Include="Scripts\Lua\lgrammar_table.cs" />
     <Compile Include="Scripts\Lua\llex.cs" />
     <Compile Include="Scripts\Lua\llex_lite.cs" />
     <Compile Include="Scripts\Lua\loptimal.cs" />

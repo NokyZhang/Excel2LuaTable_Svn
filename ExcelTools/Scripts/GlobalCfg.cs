@@ -166,7 +166,10 @@ namespace ExcelTools.Scripts
                     if (File.Exists(serverLuaPath))
                         ltd.tables[i] = parse(serverLuaPath, excelpath);
                     else
-                        ltd.tables[i] = null;
+                    {
+                        string excelName = Path.GetFileNameWithoutExtension(excelpath);
+                        ltd.tables[i] = new table(ReadTableMD5(slltpath), string.Format("Table_{0}", excelName), excelpath);
+                    }
                 }
             }
             return _lTableDataDic[excelpath];
@@ -333,12 +336,12 @@ namespace ExcelTools.Scripts
             Instance.ClearCurrent();
         }
 
-        public List<config> GetTableRow(string id)
+        public List<config> GetTableRows(string id)
         {
             List<config> rows = new List<config>();
             for (int i = 0; i < currentLuaTableData.tables.Length; i++)
             {
-                if (currentLuaTableData.tables[i] != null && currentLuaTableData.tables[i].configsDic.ContainsKey(id))
+                if (currentLuaTableData.tables[i].configsDic.ContainsKey(id))
                     rows.Add(currentLuaTableData.tables[i].configsDic[id]);
                 else
                     rows.Add(null);
@@ -346,9 +349,55 @@ namespace ExcelTools.Scripts
             return rows;
         }
 
-        public property GetProperty(string cfgId, string propertyName, int branchIndex)
+        public config GetTableRow(string cfgid, int branchIndex)
         {
-            return currentLuaTableData.tables[branchIndex + 1].configsDic[cfgId].propertiesDic[propertyName];
+            if (currentLuaTableData.tables[branchIndex].configsDic.ContainsKey(cfgid))
+                return currentLuaTableData.tables[branchIndex].configsDic[cfgid];
+            else
+                return null;
+        }
+
+        public property GetCurProperty(string cfgId, string propertyName, int branchIndex)
+        {
+            table curTable = currentLuaTableData.tables[branchIndex + 1];
+            if (curTable.configsDic.ContainsKey(cfgId) && curTable.configsDic[cfgId].propertiesDic.ContainsKey(propertyName))
+                return curTable.configsDic[cfgId].propertiesDic[propertyName];
+            else
+                return null;
+        }
+
+        public property GetCurProperty(config cfg, string propertyName)
+        {
+            if (cfg.propertiesDic.ContainsKey(propertyName))
+                return cfg.propertiesDic[propertyName];
+            else
+                return null;
+        }
+
+        public void SetCurProperty(string cfgId, string propertyName, int branchIndex, string value)
+        {
+            config cfg = GetTableRow(cfgId, branchIndex);
+            if(cfg == null)
+            {
+                currentLuaTableData.tables[branchIndex].Apply(DifferController.STATUS_ADDED, new config(cfgId));
+                cfg = GetTableRow(cfgId, branchIndex);
+            }
+            property property = GetCurProperty(cfg, propertyName);
+            if(property == null)
+            {
+                property newProperty = new property();
+                newProperty.value4Show = value;
+                newProperty.name = propertyName;
+                newProperty.isServer = GetParsedExcel(currentExcelpath).PropertyDic[propertyName].isServerProperty;
+                newProperty.type = GetParsedExcel(currentExcelpath).PropertyDic[propertyName].type;
+                if (newProperty.type == PROPERTY_TYPE_STRING)
+                    newProperty.value = String.Format("'{0}'", newProperty.value4Show);
+                else if (newProperty.type == PROPERTY_TYPE_TABLE)
+                    newProperty.value = String.Format("{{0}}", newProperty.value4Show);
+                else
+                    newProperty.value = newProperty.value4Show;
+                cfg.Apply(DifferController.STATUS_ADDED, newProperty);
+            }
         }
 
         public bool GetIsNeedGen(string cfgId, string propertyName)

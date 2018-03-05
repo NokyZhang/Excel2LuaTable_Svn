@@ -1,9 +1,10 @@
 ﻿
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace ExcelTools.Scripts.UI
 {
-    class PropertyListItem : INotifyPropertyChanged
+    public class PropertyListItem : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -56,6 +57,44 @@ namespace ExcelTools.Scripts.UI
             {
                 _Release = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Release"));
+            }
+        }
+
+        public string GetBranchValue(int branchIndex)
+        {
+            switch(branchIndex)
+            {
+                case 0:
+                    return Trunk;
+                case 1:
+                    return Studio;
+                case 2:
+                    return TF;
+                case 3:
+                    return Release;
+                default:
+                    return null;
+            }
+        }
+
+        public void SetBranchValue(int branchIndex, string value)
+        {
+            switch (branchIndex)
+            {
+                case 0:
+                    Trunk = value;
+                    break;
+                case 1:
+                    Studio = value;
+                    break;
+                case 2:
+                    TF = value;
+                    break;
+                case 3:
+                    Release = value;
+                    break;
+                default:
+                    break;
             }
         }
     }

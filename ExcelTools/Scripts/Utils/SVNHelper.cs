@@ -166,6 +166,9 @@ public class SVNHelper
                 case STATE_ADDED:
                     File.Delete(paths[i]);
                     break;
+                case STATE_DELETED:
+                    Update(paths[i]);
+                    break;
                 default:
                     break;
             }

@@ -288,8 +288,8 @@ namespace Lua
 
             public static config GenConfigByIsNeedGenDic(config baseCfg, config newCfg)
             {
-                config realCfg = new config(newCfg);
-                config originCfg = new config(baseCfg);
+                config realCfg = newCfg == null ? null: new config(newCfg);
+                config originCfg = baseCfg == null? null: new config(baseCfg);
                 if (realCfg == null)
                 {
                     if (originCfg != null) {
@@ -324,9 +324,15 @@ namespace Lua
             }
         }
 
+        public const string PROPERTY_TYPE_NUMBER = "number";
+        public const string PROPERTY_TYPE_STRING = "string";
+        public const string PROPERTY_TYPE_TABLE = "table";
+
         public class property
         {
             public string name;
+            public string type;
+            public string value4Show;
             public string value;
             public bool isServer = false;
 
@@ -336,7 +342,9 @@ namespace Lua
             {
                 name = property.name;
                 value = property.value;
+                value4Show = property.value4Show;
                 isServer = property.isServer;
+                type = property.type;
             }
 
             public string GenString()
@@ -363,8 +371,15 @@ namespace Lua
             p.name = llex_lite.buff2str();/* read key */
             if (sourceExl.PropertyDic.ContainsKey(p.name)) {
                 p.isServer = sourceExl.PropertyDic[p.name].isServerProperty;
+                p.type = sourceExl.PropertyDic[p.name].type;
             }
-            llex_lite.llex(sr); p.value = llex_lite.buff2str();/* read val */
+            llex_lite.llex(sr);
+            p.value = llex_lite.buff2str();/* read true val */
+            if ((p.value[0] == '\'' && p.value[p.value.Length - 1] == '\'')
+                || (p.value[0] == '{' && p.value[p.value.Length - 1] == '}'))
+                p.value4Show = p.value.Substring(1, p.value.Length - 2);
+            else
+                p.value4Show = p.value;
             return p;
         }
 

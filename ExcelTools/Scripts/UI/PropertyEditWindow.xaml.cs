@@ -21,6 +21,7 @@ namespace ExcelTools.Scripts.UI
     /// </summary>
     public partial class PropertyEditWindow : Window
     {
+        private PropertyListItem propertyListItem;
         private string propertyName;
         private string oldpropertyContent;
         private string newpropertyContent;
@@ -28,12 +29,13 @@ namespace ExcelTools.Scripts.UI
         private string cfgId;
         private int branchIndex;
         
-        public PropertyEditWindow(string _propertyName, string _propertyId, string _propertyContent, string _cfgId, int _branchIndex)
+        public PropertyEditWindow(PropertyListItem _propertyListItem, string _cfgId, int _branchIndex)
         {
             InitializeComponent();
-            propertyName = _propertyName;
-            newpropertyContent = oldpropertyContent = _propertyContent;
-            propertyId = _propertyId;
+            propertyListItem = _propertyListItem;
+            propertyName = propertyListItem.PropertyName;
+            newpropertyContent = oldpropertyContent = propertyListItem.GetBranchValue(_branchIndex);
+            propertyId = propertyListItem.EnName;
             cfgId = _cfgId;
             branchIndex = _branchIndex;
             Init();
@@ -67,13 +69,16 @@ namespace ExcelTools.Scripts.UI
         private void ConfirmBtn_Click(object sender, RoutedEventArgs e)
         {
             System.Windows.Forms.MessageBoxButtons buttons = System.Windows.Forms.MessageBoxButtons.OKCancel;
-            System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show("是否将" + oldpropertyContent + "修改为" + newpropertyContent + "？", "确认", buttons);
+            System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show("是否确认对 " + propertyName + " 的修改？", "确认", buttons);
             if (dr == System.Windows.Forms.DialogResult.OK)
             {
-                lparser.property property = GlobalCfg.Instance.GetProperty(cfgId, propertyId, branchIndex);
-                property.value = newpropertyContent;
+                if (GlobalCfg.Instance.GetCurProperty(cfgId, propertyName, -1).type == lparser.PROPERTY_TYPE_TABLE) //table需要语法检查
+                {
+                    //TODO:语法检查
+                }
+                GlobalCfg.Instance.SetCurProperty(cfgId, propertyId, branchIndex, newpropertyContent);
                 oldpropertyContent = newpropertyContent;
-                //TODO:修改FieldListItem对应属性，没有此property的要去生成
+                propertyListItem.SetBranchValue(branchIndex, newpropertyContent);
                 Close();
             }
         }
@@ -88,7 +93,7 @@ namespace ExcelTools.Scripts.UI
             if (newpropertyContent != oldpropertyContent)
             {
                 System.Windows.Forms.MessageBoxButtons buttons = System.Windows.Forms.MessageBoxButtons.OKCancel;
-                System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show("是否放弃" + propertyName + "的修改？", "确认", buttons);
+                System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show("是否放弃对 " + propertyName + " 的修改？", "确认", buttons);
                 if (dr == System.Windows.Forms.DialogResult.OK)
                 {
                     base.OnClosing(e);

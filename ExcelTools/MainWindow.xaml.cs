@@ -177,7 +177,7 @@ namespace ExcelTools
                 return;
             }
             List<PropertyInfo> propertyList = excel.Properties;
-            List<lparser.config> configs = GlobalCfg.Instance.GetTableRow(item.ID);
+            List<lparser.config> configs = GlobalCfg.Instance.GetTableRows(item.ID);
             lparser.config fullConfig = configs[0];
             foreach(lparser.config config in configs)
             {
@@ -204,11 +204,11 @@ namespace ExcelTools
                     IsNeedGen = GlobalCfg.Instance.GetIsNeedGen(fullConfig.key, ename),
                     PropertyName = cname + "（" + ename + "）",
                     EnName = ename,
-                    LocalContent = configs[0] != null && configs[0].propertiesDic.ContainsKey(ename) ? configs[0].propertiesDic[ename].value : null,
-                    Trunk = configs[1] != null && configs[1].propertiesDic.ContainsKey(ename) ? configs[1].propertiesDic[ename].value : null,
-                    Studio = configs[2] != null && configs[2].propertiesDic.ContainsKey(ename) ? configs[2].propertiesDic[ename].value : null,
-                    TF = configs[3] != null && configs[3].propertiesDic.ContainsKey(ename) ? configs[3].propertiesDic[ename].value : null,
-                    Release = configs[4] != null && configs[4].propertiesDic.ContainsKey(ename) ? configs[4].propertiesDic[ename].value : null
+                    LocalContent = configs[0] != null && configs[0].propertiesDic.ContainsKey(ename) ? configs[0].propertiesDic[ename].value4Show : null,
+                    Trunk = configs[1] != null && configs[1].propertiesDic.ContainsKey(ename) ? configs[1].propertiesDic[ename].value4Show : null,
+                    Studio = configs[2] != null && configs[2].propertiesDic.ContainsKey(ename) ? configs[2].propertiesDic[ename].value4Show : null,
+                    TF = configs[3] != null && configs[3].propertiesDic.ContainsKey(ename) ? configs[3].propertiesDic[ename].value4Show : null,
+                    Release = configs[4] != null && configs[4].propertiesDic.ContainsKey(ename) ? configs[4].propertiesDic[ename].value4Show : null
                 });
             }
             propertyDataGrid.ItemsSource = fieldList;
@@ -434,8 +434,7 @@ namespace ExcelTools
                 branchName = Enum.GetName(typeof(Branch), i);
                 if ((string)(cell.Column.Header) == branchName)
                 {
-                    TextBlock tb = cell.Content as TextBlock;
-                    PropertyEditWindow propertyEditWindow = new PropertyEditWindow(itemSource.PropertyName, itemSource.EnName, tb.Text, _IDItemSelected.ID, i);
+                    PropertyEditWindow propertyEditWindow = new PropertyEditWindow(itemSource, _IDItemSelected.ID, i);
                     propertyEditWindow.ShowDialog();
                     break;
                 }
