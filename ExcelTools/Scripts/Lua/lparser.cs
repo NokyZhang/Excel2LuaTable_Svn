@@ -408,8 +408,16 @@ namespace Lua
             while(!sr.EndOfStream && llex_lite.llex(sr) != '}')
             {
                 config conf = read_config(sr, sourceExlPath);
-                t.configs.Add(conf);
-                t.configsDic.Add(conf.key, conf);
+                if (t.configsDic.ContainsKey(conf.key))
+                {
+                    string message = t.sourceExlpath +"\n" + "配置读取失败\nID值 " + conf.key + " 重复出现";
+                    throw new Exception(message);
+                }
+                else
+                {
+                    t.configs.Add(conf);
+                    t.configsDic.Add(conf.key, conf);
+                }
             }
             return t;
         }

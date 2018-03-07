@@ -463,8 +463,8 @@ namespace ExcelTools
                     GenBtns[i].Content = GENBTN_STATE_GEN + branchs[i].Substring(branchs[0].IndexOf("_") + 1);
                     GenBtns[i].DataContext = GENBTN_STATE_GEN;
                 }
-
-                GenBtns[i].IsEnabled = _excelItemChoosed.IsEditing;
+                
+                GenBtns[i].IsEnabled = _excelItemChoosed == null? false: _excelItemChoosed.IsEditing;
                 if (rowStatus == null || (rowStatus[i] == "" && !_IDItemSelected.IsApplys[i]))
                 {
                     GenBtns[i].IsEnabled = false;

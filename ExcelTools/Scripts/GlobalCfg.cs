@@ -136,11 +136,11 @@ namespace ExcelTools.Scripts
         {
             if (!_lTableDataDic.ContainsKey(excelpath))
             {
-                _lTableDataDic[excelpath] = new LuaTableData
+                LuaTableData ltd = new LuaTableData
                 {
                     tableDiffs = new List<tablediff>()
                 };
-                //对比md5，看是否需要重新生成LocalLuaTable llt
+                #region 对比md5，看是否需要重新生成LocalLuaTable llt
                 string tablename = string.Format("Table_{0}", Path.GetFileNameWithoutExtension(excelpath));
                 string slltpath = GetLocalServerLuaPath(tablename);
                 string clltpath = GetLocalClientLuaPath(excelpath);
@@ -150,7 +150,6 @@ namespace ExcelTools.Scripts
                 {
                     return null;
                 }
-                LuaTableData ltd = _lTableDataDic[excelpath];
                 if (!File.Exists(slltpath) || md5 != ReadTableMD5(slltpath)
                     || (!isServer && (!File.Exists(clltpath) || md5 != ReadTableMD5(clltpath))))
                 {
@@ -159,7 +158,20 @@ namespace ExcelTools.Scripts
                         return null;
                     }
                 }
-                ltd.tables[0] = parse(slltpath, excelpath);
+                #endregion
+                try
+                {
+                    ltd.tables[0] = parse(slltpath, excelpath);
+                }
+                catch(Exception ex) /*可能会有重复ID的错误*/
+                {
+                    System.Windows.Forms.MessageBoxButtons button = System.Windows.Forms.MessageBoxButtons.OK;
+                    System.Windows.Forms.DialogResult errorDr = System.Windows.Forms.MessageBox.Show(ex.Message, "错误", button);
+                    if (errorDr == System.Windows.Forms.DialogResult.OK)
+                    {
+                        return null;
+                    }
+                }
                 for (int i = 1; i < BranchCount + 1; i++)
                 {
                     string serverLuaPath = GetBranchServerLuaPath(tablename, i - 1);
@@ -171,6 +183,7 @@ namespace ExcelTools.Scripts
                         ltd.tables[i] = new table(ReadTableMD5(slltpath), string.Format("Table_{0}", excelName), excelpath);
                     }
                 }
+                _lTableDataDic[excelpath] = ltd;
             }
             return _lTableDataDic[excelpath];
         }
