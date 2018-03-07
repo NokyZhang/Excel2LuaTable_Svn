@@ -1,7 +1,9 @@
-﻿using Lua;
+﻿using ExcelTools.Scripts.Lua;
+using Lua;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -72,9 +74,28 @@ namespace ExcelTools.Scripts.UI
             System.Windows.Forms.DialogResult dr = System.Windows.Forms.MessageBox.Show("是否确认对 " + propertyName + " 的修改？", "确认", buttons);
             if (dr == System.Windows.Forms.DialogResult.OK)
             {
-                if (GlobalCfg.Instance.GetCurProperty(cfgId, propertyName, -1).type == lparser.PROPERTY_TYPE_TABLE) //table需要语法检查
+                if (GlobalCfg.Instance.GetCurProperty(cfgId, propertyListItem.EnName, -1).type == lparser.PROPERTY_TYPE_TABLE) /*table需要语法检查*/
                 {
-                    //TODO:语法检查
+                    if(newpropertyContent != "_EmptyTable")
+                    {
+                        string tableContent = "{" + newpropertyContent + "}";
+                        byte[] byteArray = Encoding.UTF8.GetBytes(tableContent);
+                        MemoryStream stream = new MemoryStream(byteArray);
+                        StreamReader streamReader = new StreamReader(stream);
+                        try
+                        {
+                            lgrammar_table.lgrammar(streamReader);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Windows.Forms.MessageBoxButtons button = System.Windows.Forms.MessageBoxButtons.OK;
+                            System.Windows.Forms.DialogResult errorDr = System.Windows.Forms.MessageBox.Show(ex.Message, "错误", button);
+                            if (errorDr == System.Windows.Forms.DialogResult.OK)
+                            {
+                                return;
+                            }
+                        }
+                    }
                 }
                 GlobalCfg.Instance.SetCurProperty(cfgId, propertyId, branchIndex, newpropertyContent);
                 oldpropertyContent = newpropertyContent;
