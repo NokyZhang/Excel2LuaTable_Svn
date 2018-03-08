@@ -432,7 +432,7 @@ namespace ExcelTools
             for (int i = 0; i < GlobalCfg.BranchCount; i++)
             {
                 branchName = Enum.GetName(typeof(Branch), i);
-                if ((string)(cell.Column.Header) == branchName)
+                if ((string)(cell.Column.Header) == branchName && itemSource.EnName != "id" && itemSource.EnName != "ID")
                 {
                     PropertyEditWindow propertyEditWindow = new PropertyEditWindow(itemSource, _IDItemSelected.ID, i);
                     propertyEditWindow.ShowDialog();
