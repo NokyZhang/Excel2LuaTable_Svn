@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ExcelTools.Scripts.Lua;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -258,30 +259,31 @@ namespace Lua
 
         static void read_table_asstring(StreamReader sr)
         {
-            int bracket = 1;
-            save_and_next(sr);/* keep delimiter (for error messages) */
-            while (bracket > 0)
-            {
-                switch (sr.Peek())
-                {
-                    case '\0':
-                        Console.Error.WriteLine(@"unfinished string. last char is \0");
-                        break;/* to avoid warnings */
-                    case '\n': case '\r':
-                        Console.Error.WriteLine(@"unfinished string. last char is \n or \r");
-                        break;/* to avoid warnings */
-                    default:
-                        if (sr.Peek() == '{')
-                            bracket++;
-                        else if (sr.Peek() == '}')
-                            bracket--;
-                        if (bracket == 0)
-                            goto endloop;
-                        save_and_next(sr);
-                        break;
-                }
-            }
-            endloop: save_and_next(sr); /* skip delimiter */
+            lgrammar_table.lgrammar(sr, buffer);  /*包含lua语法检查*/
+            //int bracket = 1;
+            //save_and_next(sr);/* keep delimiter (for error messages) */
+            //while (bracket > 0)
+            //{
+            //    switch (sr.Peek())
+            //    {
+            //        case '\0':
+            //            Console.Error.WriteLine(@"unfinished string. last char is \0");
+            //            break;/* to avoid warnings */
+            //        case '\n': case '\r':
+            //            Console.Error.WriteLine(@"unfinished string. last char is \n or \r");
+            //            break;/* to avoid warnings */
+            //        default:
+            //            if (sr.Peek() == '{')
+            //                bracket++;
+            //            else if (sr.Peek() == '}')
+            //                bracket--;
+            //            if (bracket == 0)
+            //                goto endloop;
+            //            save_and_next(sr);
+            //            break;
+            //    }
+            //}
+            //endloop: save_and_next(sr); /* skip delimiter */
         }
 
         static void read_string(StreamReader sr, int del)

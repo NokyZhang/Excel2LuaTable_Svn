@@ -1,11 +1,6 @@
-﻿using System;
+﻿using ExcelTools.Scripts.UserException;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace ExcelTools.Scripts.Lua
 {
@@ -21,41 +16,50 @@ namespace ExcelTools.Scripts.Lua
         //exp ::= Number|String|tableconstructor
 
         private static StreamReader streamReader;
-        private static Dictionary<string, char> keysDic = new Dictionary<string, char>();
-        private static Dictionary<string, char> propertyDic = new Dictionary<string, char>();
-        private static int currentLine = 2;
+        private static Stack<Dictionary<string, char>> keysColsureStack = new Stack<Dictionary<string, char>>();
 
-        enum ErrorMode
+        private static void Add2keysDic(string key)
         {
-            Complete,
-            Simple,
+            Dictionary<string, char> keysDic = keysColsureStack.Peek();
+            if (!keysDic.ContainsKey(key))
+                keysDic.Add(key, ' ');
+            else
+                ThrowError(key);
         }
+
         private static void ThrowError(string key)/*key重复错误*/
         {
             string errorText = "key值 " + key + " 重复出现";
-            throw new Exception(errorText);
+            throw new LuaTableException(errorText);
         }
 
-        private static void ThrowError(ErrorMode mode = ErrorMode.Simple)
+        private static void ThrowError()
         {
-            string errorText = String.Empty;
-            switch (mode)
-            {
-                case ErrorMode.Complete:
-                    errorText = "line " + currentLine + ": 字符'" + (char)streamReader.Peek() + "'" + "附近有错误";
-                    break;
-                case ErrorMode.Simple:
-                    errorText = "字符'" + (char)streamReader.Peek() + "'" + "附近有错误";
-                    break;
-            }
-            throw new Exception(errorText);
+            string errorText = "字符'" + (char)streamReader.Peek() + "'" + "附近有错误";
+            throw new LuaTableException(errorText);
         }
 
-        public static void lgrammar(StreamReader fs)
+        /// <summary> 
+        /// 仅语法检查的重载方法
+        /// </summary> 
+        public static void lgrammar(StreamReader sr)
         {
-            streamReader = fs;
-            keysDic.Clear();
-            propertyDic.Clear();
+            IsNeedRecord = false;
+            streamReader = sr;
+            keysColsureStack.Clear();
+            GetLuaTable();
+        }
+
+        private static List<char> mainBuffer = new List<char>();
+        /// <summary> 
+        /// 需要存储内容的重载方法
+        /// </summary> 
+        public static void lgrammar(StreamReader sr, List<char> buffer)
+        {
+            IsNeedRecord = true;
+            streamReader = sr;
+            keysColsureStack.Clear();
+            mainBuffer = buffer;
             GetLuaTable();
         }
 
@@ -64,16 +68,19 @@ namespace ExcelTools.Scripts.Lua
             Ignore_Space_Wrap();
             if (streamReader.Peek() == '{')
             {
-                streamReader.Read();
+                keysColsureStack.Push(new Dictionary<string, char>()); //添加新table的key表
+                ReadStream();
                 GetFieldList();
             }
             else
             {
                 ThrowError();
             }
-            if(!streamReader.EndOfStream && streamReader.Peek() == '}')
+            Ignore_Space_Wrap();
+            if (!streamReader.EndOfStream && streamReader.Peek() == '}')
             {
-                streamReader.Read();
+                keysColsureStack.Pop();
+                ReadStream();
             }
             else
             {
@@ -97,7 +104,11 @@ namespace ExcelTools.Scripts.Lua
             Ignore_Space_Wrap();
             if (streamReader.Peek() == ',' || streamReader.Peek() == ';')
             {
-                streamReader.Read();
+                ReadStream();
+            }
+            else if(streamReader.Peek() == '}')
+            {
+                return;
             }
             else
             {
@@ -121,8 +132,7 @@ namespace ExcelTools.Scripts.Lua
             {
                 GetKeyValue();
             }
-            else if((next >= 65 && next <=90)   /*大写字母*/
-                ||(next >= 97 && next <= 122)   /*小写字母*/
+            else if( NextIsLetter()
                 || next == '_')
             {
                 GetProperty();
@@ -143,25 +153,29 @@ namespace ExcelTools.Scripts.Lua
             Ignore_Space_Wrap();
             if(streamReader.Peek() == '=')
             {
-                streamReader.Read();
+                ReadStream();
             }
             else
             {
                 ThrowError();
             }
-            GetExp();
+            if (NextIsLetter()
+                || streamReader.Peek() == '_')
+            {
+                GetName();
+            }
+            else
+            {
+                GetExp();
+            }
             void GetKey()
             {
-                streamReader.Read();
+                ReadStream();
                 GetExp();
-                string key = buff2string();
-                if (!keysDic.ContainsKey(key))
-                    keysDic.Add(buff2string(), ' ');
-                else
-                    ThrowError(key);
+                Add2keysDic(GetCurExp());
                 if (streamReader.Peek() == ']')
                 {
-                    streamReader.Read();
+                    ReadStream();
                 }
                 else
                 {
@@ -173,6 +187,7 @@ namespace ExcelTools.Scripts.Lua
         private static void GetProperty()
         {
             GetName();
+            Add2keysDic(GetCurExp());
             Ignore_Space_Wrap();
             if (streamReader.Peek() == '=')
             {
@@ -180,39 +195,55 @@ namespace ExcelTools.Scripts.Lua
             }
             else
             {
-                ThrowError();
+                return;
             }
-            GetExp();
-            void GetName()
+            if (NextIsLetter()
+                || streamReader.Peek() == '_')
             {
-                while(!streamReader.EndOfStream && streamReader.Peek() != '=')
+                GetName();
+            }
+            else
+            {
+                GetExp();
+            }
+        }
+
+        private static void GetName()
+        {
+            expBuffer.Clear();
+            ReadStream(); //读取变量的首字母
+            expBuffer.Add(mainBuffer[mainBuffer.Count - 1]);
+            while (!streamReader.EndOfStream && streamReader.Peek() != '=')
+            {
+                if (NextIsLetter()
+                || streamReader.Peek() == '_'
+                || NextIsNumber())
                 {
-                    if ((streamReader.Peek() >= 65 && streamReader.Peek() <= 90)   /*大写字母*/
-                    || (streamReader.Peek() >= 97 && streamReader.Peek() <= 122)   /*小写字母*/
-                    || streamReader.Peek() == '_')
-                    {
-                        streamReader.Read();
-                    }
-                    else
-                    {
-                        return;
-                    }
+                    ReadStream();
+                    expBuffer.Add(mainBuffer[mainBuffer.Count - 1]);
+                }
+                else
+                {
+                    return;
                 }
             }
         }
 
-        private static List<char> buff = new List<char>();
-        private static string buff2string()
+        private static List<char> expBuffer = new List<char>();
+        private static string GetCurExp()
         {
-            return new string(buff.ToArray());
+            string result = new string(expBuffer.ToArray());
+            expBuffer.Clear();
+            return result;
         }
         private static void GetExp()
         {
-            buff.Clear();
+            expBuffer.Clear();
             Ignore_Space_Wrap();
             int next = streamReader.Peek();
-            if ((next >= 48 && next <= 57)   /*数字*/
-               || next == '.')
+            if ( NextIsNumber()
+               || next == '.'
+               || next == '-')
             {
                 GetNumber();
             }
@@ -224,27 +255,60 @@ namespace ExcelTools.Scripts.Lua
             {
                 GetLuaTable();
             }
+            else if (next == 'f' || next == 't')
+            {
+                GetBool();
+            }
             void GetNumber()
             {
-                    while (!streamReader.EndOfStream)
+                bool hasDot = false;
+                bool isHex = false;
+                char first = ReadStream();
+                expBuffer.Add(mainBuffer[mainBuffer.Count - 1]);
+                if (first == '.')
+                {
+                    hasDot = true;
+                }
+                else if(first == '0')
+                {
+                    if(streamReader.Peek() == 'x' || streamReader.Peek() == 'X') /*十六进制*/
                     {
-                        if ((streamReader.Peek() >= 48 && streamReader.Peek() <= 57)   /*数字*/
-                           || streamReader.Peek() == '.')
-                        {
-                            buff.Add((char)streamReader.Read());
-                        }
-                        else
-                        {
-                            return;
-                        }
+                        isHex = true;
+                        ReadStream();
+                        expBuffer.Add(mainBuffer[mainBuffer.Count - 1]);
                     }
                 }
+                
+                while (!streamReader.EndOfStream)
+                {
+                    if ( NextIsNumber()
+                      || (streamReader.Peek() == '.'&& !hasDot))
+                    {
+                        if (ReadStream() == '.')
+                        {
+                            hasDot = true;
+                        }
+                        expBuffer.Add(mainBuffer[mainBuffer.Count-1]);
+                    }
+                    else if(isHex && NextIsHex())
+                    {
+                        ReadStream();
+                        expBuffer.Add(mainBuffer[mainBuffer.Count - 1]);
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+            }
+
             void GetString(int quotationMark)
             {
-                streamReader.Read();
+                ReadStream(); /*读取前引号*/
                 while (!streamReader.EndOfStream && streamReader.Peek() != quotationMark)
                 {
-                    buff.Add((char)streamReader.Read());
+                    ReadStream();
+                    expBuffer.Add(mainBuffer[mainBuffer.Count - 1]);
                 }
                 if(streamReader.Peek() != quotationMark)
                 {
@@ -252,7 +316,38 @@ namespace ExcelTools.Scripts.Lua
                 }
                 else
                 {
-                    streamReader.Read();
+                    ReadStream(); /*读取后引号*/
+                }
+            }
+
+            void GetBool()
+            {
+                char first = ReadStream();
+                List<char> temp = new List<char>();
+                temp.Add(first);
+                if (first == 'f')
+                {
+                    for(int i = 0; i < 4; i++)
+                    {
+                        temp.Add(ReadStream());
+                    }
+                    string value = new string(temp.ToArray());
+                    if(value != "false")
+                    {
+                        ThrowError();
+                    }
+                }
+                else if(first == 't')
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        temp.Add(ReadStream());
+                    }
+                    string value = new string(temp.ToArray());
+                    if (value != "true")
+                    {
+                        ThrowError();
+                    }
                 }
             }
         }
@@ -264,10 +359,10 @@ namespace ExcelTools.Scripts.Lua
                 switch (streamReader.Peek())
                 {
                     case '\n':case '\r':/* 跳过换行符 */
-                        AddLineNumber();
+                        ReadStream();
                         break;
                     case ' ':case '\f':case '\t':case '\v':/* 跳过空格 */
-                        streamReader.Read();
+                        ReadStream();
                         break;
                     default:/* 遇到内容函数返回*/
                         return;
@@ -275,10 +370,59 @@ namespace ExcelTools.Scripts.Lua
             }
         }
 
-        private static void AddLineNumber()
+        private static bool IsNeedRecord = false;
+        private static char ReadStream()
         {
-            currentLine++;
+            char c = (char)streamReader.Read();
+            if (IsNeedRecord)
+            {
+                mainBuffer.Add(c);
+            }
+            return c;
+        }
+
+        private static void SkipStream()
+        {
             streamReader.Read();
+        }
+
+        private static bool NextIsLetter()
+        {
+            if((streamReader.Peek() >= 65 && streamReader.Peek() <= 90)   /*大写字母*/
+               || (streamReader.Peek() >= 97 && streamReader.Peek() <= 122))   /*小写字母*/
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private static bool NextIsNumber()
+        {
+            if ((streamReader.Peek() >= 48 && streamReader.Peek() <= 57))  /*数字*/
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private static bool NextIsHex()
+        {
+            if ((streamReader.Peek() >= 48 && streamReader.Peek() <= 57)
+                || (streamReader.Peek() >= 65 && streamReader.Peek() <= 70) 
+                ||(streamReader.Peek() >= 97 && streamReader.Peek() <= 102))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 }

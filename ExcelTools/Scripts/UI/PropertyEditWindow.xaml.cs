@@ -1,4 +1,5 @@
 ﻿using ExcelTools.Scripts.Lua;
+using ExcelTools.Scripts.UserException;
 using Lua;
 using System;
 using System.ComponentModel;
@@ -78,7 +79,7 @@ namespace ExcelTools.Scripts.UI
                         {
                             lgrammar_table.lgrammar(streamReader);
                         }
-                        catch (Exception ex)
+                        catch (LuaTableException ex)
                         {
                             System.Windows.Forms.MessageBoxButtons button = System.Windows.Forms.MessageBoxButtons.OK;
                             System.Windows.Forms.DialogResult errorDr = System.Windows.Forms.MessageBox.Show(ex.Message, "错误", button);

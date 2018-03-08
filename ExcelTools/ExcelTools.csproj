@@ -107,6 +107,7 @@
     <Compile Include="Scripts\UI\SearchBox.xaml.cs">
       <DependentUpon>SearchBox.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Scripts\UserException\LuaTableException.cs" />
     <Compile Include="Scripts\Utils\CommandHelper.cs" />
     <Compile Include="Scripts\Utils\DifferController.cs" />
     <Compile Include="Scripts\Utils\ExcelParserFileHelper.cs" />

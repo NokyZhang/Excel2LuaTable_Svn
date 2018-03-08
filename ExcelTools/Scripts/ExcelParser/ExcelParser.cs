@@ -154,7 +154,7 @@ class ExcelParser
             //}
             //Excel excel = Excel.Parse(path, false);
             //if (excel != null && excel.success)
-            //    GenClientVersion(excel, tempPath, excelmd5);
+            //GenClientVersion(excel, tempPath, excelmd5);
             if (NeedAutoImport(path))
                 _NeedImportClient.Add(Path.GetFileNameWithoutExtension(tempPath));
         }

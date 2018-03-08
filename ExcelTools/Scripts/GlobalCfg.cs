@@ -1,4 +1,5 @@
 ﻿using ExcelTools.Scripts.UI;
+using ExcelTools.Scripts.UserException;
 using ExcelTools.Scripts.Utils;
 using Lua;
 using System;
@@ -163,7 +164,7 @@ namespace ExcelTools.Scripts
                 {
                     ltd.tables[0] = parse(slltpath, excelpath);
                 }
-                catch(Exception ex) /*可能会有重复ID的错误*/
+                catch(LuaTableException ex) /*可能会有重复ID的错误 和 Lua table 语法错误*/
                 {
                     System.Windows.Forms.MessageBoxButtons button = System.Windows.Forms.MessageBoxButtons.OK;
                     System.Windows.Forms.DialogResult errorDr = System.Windows.Forms.MessageBox.Show(ex.Message, "错误", button);
@@ -176,7 +177,18 @@ namespace ExcelTools.Scripts
                 {
                     string serverLuaPath = GetBranchServerLuaPath(tablename, i - 1);
                     if (File.Exists(serverLuaPath))
-                        ltd.tables[i] = parse(serverLuaPath, excelpath);
+                        try {
+                            ltd.tables[i] = parse(serverLuaPath, excelpath);
+                        }
+                        catch(LuaTableException ex)
+                        {
+                            System.Windows.Forms.MessageBoxButtons button = System.Windows.Forms.MessageBoxButtons.OK;
+                            System.Windows.Forms.DialogResult errorDr = System.Windows.Forms.MessageBox.Show(serverLuaPath + "\n" + ex.Message, "错误", button);
+                            if (errorDr == System.Windows.Forms.DialogResult.OK)
+                            {
+                                return null;
+                            }
+                        }
                     else
                     {
                         string excelName = Path.GetFileNameWithoutExtension(excelpath);

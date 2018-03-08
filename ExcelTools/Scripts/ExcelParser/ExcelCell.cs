@@ -28,7 +28,16 @@ public class ExcelCell
         //return string.Format("{0} = {1}", propertyInfo.ename, getvalue());
     }
 
-    public string GetValue()
+    public string ToString(bool outforClient)
+    {
+        string str = GetValue(outforClient);
+        if (str != null)
+            return propertyInfo.ename + " = " + GetValue(outforClient);
+        else
+            return null;
+    }
+
+    public string GetValue(bool outforClient = false)
     {
         //C#中拼接字符串，固定表达式a + b + c会被优化成string.Concat(new string[]{ a, b, c })
         //性能最好
@@ -67,7 +76,7 @@ public class ExcelCell
                 break;
             case "table":
                 if (!parent.parent.isServerTable && string.IsNullOrEmpty(content))
-                    ret = "_EmptyTable";
+                    ret = outforClient? "_EmptyTable" : "{}";
                 else
                     ret = "{" + content + "}";
                     //tmp = string.Format("{{{0}}}", content);

@@ -36,7 +36,7 @@ public class ExcelRow
                     return null;
                 sb.AppendFormat("[{0}] = {{", id);
             }
-            str = cells[i].ToString();
+            str = cells[i].ToString(false);
             if (str != null)
             {
                 if (i != cells.Count - 1)
@@ -61,14 +61,14 @@ public class ExcelRow
         {
             if (i == 0)
             {
-                string id = cells[i].GetValue();
+                string id = cells[i].GetValue(true);
                 if (string.IsNullOrWhiteSpace(id))
                     return null;
                 sb.AppendFormat("[{0}] = {{", id);
             }
             if (!cells[i].propertyInfo.isServerProperty)
             {
-                str = cells[i].ToString();
+                str = cells[i].ToString(true);
                 if (str != null)
                 {
                     if (i != cells.Count - 1)

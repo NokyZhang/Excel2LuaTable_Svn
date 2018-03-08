@@ -17,8 +17,8 @@
             <avalonDock:DockingManager x:Name="dockingManager" DockPanel.Dock="Top">
                 <avalonDock:LayoutRoot>
                     <avalonDock:LayoutPanel Orientation="Horizontal">
-                        <avalonDock:LayoutAnchorablePane DockWidth="200" DockMinWidth="60" >
-                            <avalonDock:LayoutAnchorable Title="表格浏览" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
+                        <avalonDock:LayoutAnchorablePane DockWidth="200" DockMinWidth="60">
+                            <avalonDock:LayoutAnchorable Title="表格浏览" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False" >
                                 <DockPanel>
                                     <user:SearchBox x:Name="excelSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" 
                                                     OnSearch="SearchBox_OnSearch" OnCancelSearch="SearchBox_OnCancelSearch"/>
@@ -29,7 +29,7 @@
                                               SelectionChanged="FileListView_SelectionChange">
                                         <ListView.View>
                                             <GridView>
-                                                <GridViewColumn Header="表格" DisplayMemberBinding="{Binding Name}" Width="190"/>
+                                                <GridViewColumn Width="auto" Header="表格" DisplayMemberBinding="{Binding Name}"/>
                                             </GridView>
                                         </ListView.View>
                                         <ListView.ItemContainerStyle>
@@ -51,8 +51,8 @@
                             </avalonDock:LayoutAnchorable>
                         </avalonDock:LayoutAnchorablePane>
 
-                        <avalonDock:LayoutAnchorablePane DockWidth="185" DockMinWidth="60">
-                            <avalonDock:LayoutAnchorable Title="ID项" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False" >
+                        <avalonDock:LayoutAnchorablePane DockMinWidth="60" DockWidth="180">
+                            <avalonDock:LayoutAnchorable Title="ID项" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False">
                                 <DockPanel>
                                     <user:SearchBox x:Name="idSearchBox" Margin="5,2,5,2" DockPanel.Dock="Top" OnSearch="SearchBox_OnSearch" OnCancelSearch="SearchBox_OnCancelSearch"/>
                                     
@@ -85,10 +85,10 @@
                                 </DockPanel>
                             </avalonDock:LayoutAnchorable>
                         </avalonDock:LayoutAnchorablePane>
-                        <avalonDock:LayoutDocumentPane DockWidth="675" DockMinWidth="60">
+                        <avalonDock:LayoutAnchorablePane DockWidth="675" DockMinWidth="675">
                             <avalonDock:LayoutAnchorable Title="各分支内容" CanClose="False" CanFloat="False" CanHide="False" CanAutoHide="False" >
                                 <DockPanel>
-                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Width="auto" Margin="0,0,0,0">
                                         <Button Content="生成至Trunk" Click ="GenTableBtn_Click"  Name="genTableBtn_Trunk" Height="20" Width="100"  IsEnabled="False" DataContext="Gen"/>
                                         <Button Content="生成至Studio" Click ="GenTableBtn_Click"  Name="genTableBtn_Studio" Height="20" Width="100" IsEnabled="False" DataContext="Gen"/>
                                         <Button Content="生成至TF" Click ="GenTableBtn_Click"  Name="genTableBtn_TF" Height="20" Width="100" IsEnabled="False" DataContext="Gen"/>
@@ -120,7 +120,7 @@
                                     </DataGrid>
                                 </DockPanel>
                             </avalonDock:LayoutAnchorable>
-                        </avalonDock:LayoutDocumentPane>
+                        </avalonDock:LayoutAnchorablePane>
                     </avalonDock:LayoutPanel>
                 </avalonDock:LayoutRoot>
             </avalonDock:DockingManager>

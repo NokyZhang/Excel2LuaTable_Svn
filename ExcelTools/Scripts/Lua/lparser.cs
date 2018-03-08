@@ -1,4 +1,5 @@
 ﻿using ExcelTools.Scripts;
+using ExcelTools.Scripts.UserException;
 using ExcelTools.Scripts.Utils;
 using System;
 using System.Collections.Generic;
@@ -373,7 +374,15 @@ namespace Lua
                 p.isServer = sourceExl.PropertyDic[p.name].isServerProperty;
                 p.type = sourceExl.PropertyDic[p.name].type;
             }
-            llex_lite.llex(sr);
+            try /*可能会有lua table 语法错误*/
+            {
+                llex_lite.llex(sr);
+            }
+            catch(LuaTableException ex)
+            {
+                string message = p.name + " : " + ex.Message;
+                throw new LuaTableException(message);
+            }
             p.value = llex_lite.buff2str();/* read true val */
             if ((p.value[0] == '\'' && p.value[p.value.Length - 1] == '\'')
                 || (p.value[0] == '{' && p.value[p.value.Length - 1] == '}'))
@@ -391,7 +400,16 @@ namespace Lua
             string k, v = null;
             while (!sr.EndOfStream && llex_lite.llex(sr) != '}')
             {
-                property p = read_property(sr, sourceExlPath);
+                property p;
+                try /*可能会有lua table 语法错误*/
+                {
+                    p = read_property(sr, sourceExlPath);
+                }
+                catch (LuaTableException ex)
+                {
+                    string message = config.key + ", " + ex.Message;
+                    throw new LuaTableException(message);
+                }           
                 config.properties.Add(p);
                 config.propertiesDic.Add(p.name, p);
                 config.IsNeedGenDic.Add(p.name, true);
@@ -411,7 +429,7 @@ namespace Lua
                 if (t.configsDic.ContainsKey(conf.key))
                 {
                     string message = t.sourceExlpath +"\n" + "配置读取失败\nID值 " + conf.key + " 重复出现";
-                    throw new Exception(message);
+                    throw new LuaTableException(message);
                 }
                 else
                 {
